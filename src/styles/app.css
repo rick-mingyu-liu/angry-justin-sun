@@ -981,13 +981,20 @@ noscript {
 /* ---- level selection page ---- */
 
 .level-menu {
-  width: min(720px, calc(100vw - 32px));
+  width: min(760px, calc(100vw - 32px));
+}
+
+/* Thirty cards do not fit one screen: the header stays put, the grid scrolls. */
+.level-menu[open] {
+  display: flex;
+  flex-direction: column;
 }
 
 .level-menu__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
+  min-height: 0;
   padding: 8px 20px 22px;
   overflow-y: auto;
 }

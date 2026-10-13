@@ -8,6 +8,7 @@ import { BirdType } from "../types/BirdType";
 import { PigSize } from "../constants";
 import { BlockMaterial } from "../constants/Materials";
 import {
+  GRID_LEVELS,
   SLINGSHOT,
   convertGridLevelToLevelData,
   createGridLevel,
@@ -234,6 +235,50 @@ const BLUEPRINTS: GridLevelBlueprint[] = [
     minBirdsToClear: 3,
   },
 ];
+
+/**
+ * Levels 9 to 30 reuse upstream layouts, replayed with plain shots only.
+ * Upstream designed them around special abilities, so every one listed here
+ * was first won by scripted play with plain shots; the shot counts come from
+ * those runs, with extra shots where random aim lost most attempts. Upstream levels 6, 12, 22, 23 and 25 are left out: the first
+ * four were never won that way and 12 only once in four tries.
+ */
+const ADAPTED_UPSTREAM_LEVELS: readonly { id: number; upstreamId: number; shots: number }[] = [
+  { id: 9, upstreamId: 4, shots: 4 },
+  { id: 10, upstreamId: 5, shots: 7 },
+  { id: 11, upstreamId: 7, shots: 5 },
+  { id: 12, upstreamId: 8, shots: 3 },
+  { id: 13, upstreamId: 9, shots: 4 },
+  { id: 14, upstreamId: 10, shots: 4 },
+  { id: 15, upstreamId: 11, shots: 3 },
+  { id: 16, upstreamId: 13, shots: 5 },
+  { id: 17, upstreamId: 14, shots: 3 },
+  { id: 18, upstreamId: 15, shots: 4 },
+  { id: 19, upstreamId: 16, shots: 3 },
+  { id: 20, upstreamId: 17, shots: 5 },
+  { id: 21, upstreamId: 18, shots: 5 },
+  { id: 22, upstreamId: 19, shots: 4 },
+  { id: 23, upstreamId: 20, shots: 5 },
+  { id: 24, upstreamId: 21, shots: 6 },
+  { id: 25, upstreamId: 24, shots: 5 },
+  { id: 26, upstreamId: 26, shots: 6 },
+  { id: 27, upstreamId: 27, shots: 7 },
+  { id: 28, upstreamId: 28, shots: 5 },
+  { id: 29, upstreamId: 29, shots: 6 },
+  { id: 30, upstreamId: 30, shots: 6 },
+];
+
+for (const { id, upstreamId, shots: shotCount } of ADAPTED_UPSTREAM_LEVELS) {
+  const upstream = GRID_LEVELS.find((level) => level.levelId === upstreamId);
+  if (!upstream) continue;
+  const { starThresholds: _upstreamThresholds, ...layout } = upstream;
+  BLUEPRINTS.push({
+    ...layout,
+    ...describe(id),
+    birds: shots(shotCount),
+    minBirdsToClear: Math.max(1, shotCount - 2),
+  });
+}
 
 const MVP_LEVELS: LevelData[] = BLUEPRINTS.map((blueprint) =>
   convertGridLevelToLevelData(createGridLevel(blueprint))

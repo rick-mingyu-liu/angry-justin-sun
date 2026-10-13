@@ -19,6 +19,19 @@ npm run lint
 
 `dist/` is a static site with relative asset paths; any static host can serve it. Nothing is loaded from a CDN. The only external request is the Bilibili player iframe, once a programme is configured.
 
+## Deploy on Vercel and see traffic
+
+Import the repository in Vercel; it detects Vite (build `npm run build`, output `dist`). For visitor numbers:
+
+1. In the Vercel project, open **Analytics** and click **Enable**.
+2. Deploy again. The tracking routes only exist on deployments made after enabling.
+
+The code side is already in place (`src/app/analytics.ts`, package `@vercel/analytics`). It only switches on in builds made on Vercel, so local runs and other hosts load and send nothing. Page views, referrers, countries and devices then appear in the Analytics tab; Vercel says first data can take a while to show.
+
+Limits on the free Hobby plan, per Vercel's docs on 2026-10-13: 50,000 events a month and a one-month reporting window. Custom events (for example "level cleared") need the Pro plan, so none are sent.
+
+Vercel has no servers in mainland China and says `*.vercel.app` may be slow or blocked there; a custom domain is less likely to be blocked but nothing is guaranteed. If the mainland audience matters, test from a mainland network before relying on it.
+
 ## Configure the podcast
 
 The programme is set in `src/podcast/podcastData.ts`. It currently points at `BV1fcHD6cEw3` (邵艾伦Alan, 对话孙宇晨：年轻人如何抓住AI时代的机会？) with 39 chapters. The chapter titles and times come from [wolfyxbt/justin-nut](https://github.com/wolfyxbt/justin-nut), which wrote them for the YouTube upload of the same episode; both uploads are 15750 s long, but the times were not checked one by one against the Bilibili video.
@@ -47,8 +60,8 @@ How the player behaves, by design:
 
 ## What is in the game
 
-- Eight levels (`src/game/levels.ts`, titles and hints in `src/game/levelCatalog.ts`): a tutorial, a deck on thin legs that collapses, a log cabin, a glass tower, a TNT table, two towers, a stone fort and a three-part finale. A level unlocks when the previous one is cleared. `选关` in the toolbar opens the level page (stars, best score, locks); the game pauses while it is open. To add a level, append a blueprint to `levels.ts` and an entry to `levelCatalog.ts`; the level page and progress rules follow the catalog.
-- Two appearances (`src/game/characters.ts`): 坚果孙哥 and 肌肉孙哥. The second unlocks on entering level 3. They share one collision circle and the same launch physics; only the sprite differs. Switching is possible while a walnut sits in the slingshot, applies to it and the waiting ones, and costs no shot.
+- Thirty levels (`src/game/levels.ts`, titles and hints in `src/game/levelCatalog.ts`). Levels 1 to 8 were built for this game; levels 9 to 30 reuse upstream layouts with plain shots. Upstream designed those around special abilities, so each one was first won by scripted play with plain shots, and five upstream layouts that could not be won reliably that way are left out. A level unlocks when the previous one is cleared. `选关` in the toolbar opens the level page (stars, best score, locks); the game pauses while it is open. To add a level, append a blueprint to `levels.ts` and an entry to `levelCatalog.ts`; the level page and progress rules follow the catalog.
+- Two appearances (`src/game/characters.ts`): 坚果孙哥 and 薄肌孙哥. The second unlocks on entering level 3. They share one collision circle and the same launch physics; only the sprite differs. Switching is possible while a walnut sits in the slingshot, applies to it and the waiting ones, and costs no shot.
 - Sound effects start muted (`游戏音效：关`) and play at a low volume when enabled. There is no background music. The toggle does not touch the podcast.
 - The game pauses when the tab goes to the background and stays paused until `继续` is pressed.
 - Progress is stored in `localStorage` under `podcast-slingshot:progress:v1`: highest unlocked level, best score and stars per level, unlocked and selected character, sound preference. Invalid data falls back to defaults; if storage is unavailable the game runs from memory and says so. A refresh starts the latest unlocked level from its initial state.

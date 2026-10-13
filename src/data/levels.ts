@@ -143,7 +143,7 @@ export function createGridLevel(level: GridLevelBlueprint): GridLevelData {
  * - greeneling at col:1, row:0 (centered in gap between walls)
  */
 
-const GRID_LEVELS: GridLevelData[] = [
+export const GRID_LEVELS: GridLevelData[] = [
   // ============================================================
   // CHAPTER 1: TUTORIAL PROGRESSION (Levels 1-5)
   // Each level introduces ONE core mechanic
