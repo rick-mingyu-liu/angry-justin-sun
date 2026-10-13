@@ -1,0 +1,39 @@
+# Third-party material: overview
+
+Product: 播客弹弓 (Podcast Slingshot). Audit date: 2026-10-13. Details and evidence: `UPSTREAM.md`, `ASSETS.md`, `licenses/`.
+
+This folder records what was checked and what was not. It is not legal advice. A repository's MIT label does not by itself establish rights to the media inside it.
+
+Status values: **Verified** (checked against a primary source in this audit); **Stated by upstream, not independently verified**; **Not verified**.
+
+| Component | Source | Version / commit | Licence | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Game source code (`src/`, config, level data) | https://github.com/feliperyba/angry-aliens-phaser | `25ee4a531eddbb11a96dab201be623cf424220ec` (2026-05-01), equal to upstream `main` on the audit date | MIT, per `LICENSE` | Verified (pin and licence text) | Copyright line reads "Copyright (c) 2026" with no holder name. Keep the notice. |
+| Shaders (`game-assets/shaders/*.frag`) | Same repository | Same commit | MIT assumed, as upstream code | Stated by upstream, not independently verified | No attribution in the files. Not compared with public shader collections. |
+| phaser | npm registry | 3.90.0 (locked and installed) | MIT, Copyright (c) 2024 Richard Davey, Phaser Studio Inc. | Verified | Runtime, shipped. Text in `licenses/phaser-LICENSE.md`. |
+| matter-js | npm registry | 0.20.0 (locked and installed) | MIT, Copyright (c) Liam Brummitt and contributors | Verified | Runtime, shipped. Imported directly by 20 source files. Text in `licenses/matter-js-LICENSE`. |
+| eventemitter3 | npm registry, transitive via phaser | 5.0.4 (locked and installed) | MIT, Copyright (c) 2014 Arnout Kazemier | Verified | Runtime, shipped inside the phaser chunk. Text in `licenses/eventemitter3-LICENSE`. |
+| Dev dependencies | npm registry | See below | MIT or Apache-2.0 per lockfile | Stated by lockfile, not independently verified | Not shipped. |
+| Atlases: level, background, UI, vfx | Upstream repository; upstream credits Kenney (kenney.nl) | Upstream commit | CC0 if they are the Kenney packs named in `ASSETS.md` | Stated by upstream, not independently verified | Frame names match several CC0 Kenney packs. Not compared with the originals. Block, slingshot and `icon_*` frames have no identified source. |
+| Fonts: Kenney Bold, Kenney Future Narrow (woff, woff2) | Upstream repository; font metadata names Kenney and FontStruct | Upstream commit; Font Squirrel conversions dated 2023-09-19 | Conflicting: files declare CC BY-SA 3.0; kenney.nl "Kenney Fonts" page says CC0 | Origin Verified; licence Not verified | Treat as CC BY-SA 3.0 until resolved, or replace. |
+| Audio: `sfx-master.ogg` (33 effects and jingles, 5 music tracks) | Upstream repository; no origin documented anywhere | Upstream commit | Unknown | Not verified | Music is about 96 s of the 110 s file and ships even if playback is disabled. |
+| Character images: `assets/characters-source/*.png`, `game-assets/characters/*.png` | Added by this project. Stated by the project owner: produced by editing user-supplied references; reference project https://github.com/wolfyxbt/justin-nut | md5 values in `ASSETS.md` | None. Not MIT, not CC0, not freely licensed | Not verified | Depict a real public figure's face. Source files carry OpenAI image-generation content credentials. Photo and likeness rights not cleared. |
+| Bilibili external player | https://player.bilibili.com/player.html (official iframe) | Not versioned; page read 2026-10-13 | No terms stated on the documentation page | Embed mechanism Verified; terms Not verified | Embedded only. Nothing is downloaded, proxied or scraped. |
+
+Runtime dependency versions were read from `package-lock.json` and confirmed against `node_modules/<pkg>/package.json`. `package.json` declares `matter-js ^0.20.0` and `phaser ^3.90.0`.
+
+Dev dependencies (build and test only, not shipped), locked versions and lockfile licence fields: `@types/matter-js` 0.19.8 MIT; `@typescript-eslint/eslint-plugin` 8.56.1 MIT; `@typescript-eslint/parser` 8.56.1 MIT; `eslint` 10.0.2 MIT; `eslint-config-prettier` 10.1.8 MIT; `eslint-plugin-prettier` 5.5.5 MIT; `prettier` 3.8.1 MIT; `typescript` 5.7.3 Apache-2.0; `typescript-eslint` 8.56.1 MIT; `vite` 6.4.1 MIT; `sharp` 0.35.5 Apache-2.0; `vitest` 3.2.7 MIT. `sharp` and `vitest` were added by this project on 2026-10-13; the rest come from upstream. Their transitive dependencies were not audited.
+
+## Open items before public release
+
+Most serious first.
+
+1. **Character images: photo and likeness rights not cleared.** The images show a real public figure's face. The underlying photograph is unidentified, the reference project grants no rights in its character images and expressly excludes likenesses from its licence, and no consent from the person depicted is on record. This is the product owner's responsibility to clear. Do not label these files MIT, CC0 or "our own". See `ASSETS.md`, "Our additions".
+2. **Audio has no documented origin.** Neither the music nor the sound effects are credited anywhere upstream. Disabling music playback does not stop the music being distributed, because it is inside the single shipped `sfx-master.ogg`. Settle by obtaining sources from the upstream author, or rebuild the sprite without the music range and replace the effects with audio of known licence.
+3. **Font licence conflict.** The shipped font files declare CC BY-SA 3.0 in their metadata, while kenney.nl states CC0 for its fonts pack. Either replace them with conversions made from the kenney.nl download, or comply with CC BY-SA 3.0 (attribution and licence notice), or remove them.
+4. **Atlas art not matched to its claimed source.** Kenney origin is stated by upstream and consistent with frame names, but no file was compared with a Kenney pack, and the block, slingshot and `icon_*` frames have no identified source. Settle by downloading the packs named in `ASSETS.md` and comparing.
+5. **Bilibili terms not read.** The player documentation page states no terms. Bilibili's user agreement and any embedding or commercial-use terms, and each uploader's embedding setting, still need checking for the videos actually configured.
+6. **Notices in the shipped build.** MIT requires the copyright and permission notices to accompany copies. Confirm the production build or site includes the notices for the upstream project, phaser, matter-js and eventemitter3 (for example by publishing this folder's `licenses/` content and the upstream `LICENSE`). Not checked in this audit.
+7. **Upstream copyright holder unnamed.** The upstream `LICENSE` has a year and no holder. The grant is still the standard MIT text; reproduce the line exactly as found rather than inventing a name.
+8. **Unused upstream media still ships.** Everything under `game-assets/` is copied into the build, including atlas frames and audio the product does not use. Removing unused material reduces exposure for items 2 and 4.
+9. **Local remote differs from upstream.** `origin` in this working copy is `rick-mingyu-liu/angry-justin-sun`, not the upstream repository. The pin was confirmed against the upstream URL directly.
