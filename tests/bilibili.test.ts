@@ -24,6 +24,15 @@ describe("isValidBvid", () => {
 });
 
 describe("buildEmbedUrl", () => {
+  it("asks for autoplay only when told to", () => {
+    expect(buildEmbedUrl({ bvid: BVID, startSeconds: 90 }, { autoplay: true })).toBe(
+      `${BASE}?bvid=${BVID}&p=1&t=90&autoplay=1`
+    );
+    expect(buildEmbedUrl({ bvid: BVID }, { autoplay: false })).toBe(
+      `${BASE}?bvid=${BVID}&p=1&autoplay=0`
+    );
+  });
+
   it("builds bvid only with page 1 and autoplay 0", () => {
     expect(buildEmbedUrl({ bvid: BVID })).toBe(`${BASE}?bvid=${BVID}&p=1&autoplay=0`);
   });

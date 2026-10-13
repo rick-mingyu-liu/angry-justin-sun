@@ -21,12 +21,19 @@ function validStart(seconds: number | undefined): number | null {
     : null;
 }
 
-export function buildEmbedUrl(video: VideoRef): string | null {
+/**
+ * `autoplay` is only for a chapter the user has just clicked: that click is
+ * the user gesture browsers require. The initial load never autoplays.
+ */
+export function buildEmbedUrl(
+  video: VideoRef,
+  options: { autoplay?: boolean } = {}
+): string | null {
   if (!isValidBvid(video.bvid)) return null;
   const params = new URLSearchParams({ bvid: video.bvid, p: String(validPage(video.page)) });
   const start = validStart(video.startSeconds);
   if (start !== null) params.set("t", String(start));
-  params.set("autoplay", "0");
+  params.set("autoplay", options.autoplay ? "1" : "0");
   return `https://player.bilibili.com/player.html?${params.toString()}`;
 }
 

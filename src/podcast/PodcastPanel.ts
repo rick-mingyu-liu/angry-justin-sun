@@ -2,7 +2,7 @@
  * PodcastPanel: left column. Programme, chapter list and the selected row.
  *
  * Uses the official Bilibili iframe only. Selecting a chapter swaps the iframe
- * URL; there is no playback API, so the highlighted row is the one the user
+ * URL and asks the player to start playing (the click is the user gesture); there is no playback API, so the highlighted row is the one the user
  * picked, not live chapter tracking. Never imports game code.
  */
 
@@ -109,8 +109,8 @@ export class PodcastPanel {
   }
 
   /** Points the single iframe at `video`. A changed URL reloads the player. */
-  private showVideo(video: VideoRef, reload = false): void {
-    const embedUrl = buildEmbedUrl(video);
+  private showVideo(video: VideoRef, selectedByUser = false): void {
+    const embedUrl = buildEmbedUrl(video, { autoplay: selectedByUser });
     const watchUrl = buildWatchUrl(video);
     this.setOpenLink(watchUrl, watchUrl ? "" : "视频地址无效，将打开 B 站首页");
 
@@ -126,14 +126,15 @@ export class PodcastPanel {
     }
     // An explicit selection reloads even an unchanged URL, so clicking the
     // current chapter again jumps back to its start.
-    if (embedUrl === this.embedUrl && !reload) return;
+    if (embedUrl === this.embedUrl && !selectedByUser) return;
     this.embedUrl = embedUrl;
 
     if (!this.iframe) {
       const iframe = el("iframe", "podcast__frame");
       iframe.title = "bilibili 视频播放器";
       iframe.loading = "lazy";
-      iframe.allow = "fullscreen; picture-in-picture";
+      // "autoplay" lets a chapter click start playback inside the cross-origin player.
+      iframe.allow = "autoplay; fullscreen; picture-in-picture";
       iframe.allowFullscreen = true;
       this.iframe = iframe;
       iframe.src = embedUrl;

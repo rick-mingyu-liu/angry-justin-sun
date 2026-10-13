@@ -9,7 +9,7 @@ import { button, el, icon } from "./dom";
 import { GameHost, type SfxControl } from "./GameHost";
 
 const HELP_STEPS: readonly string[] = [
-  "节目需要在播放器里手动点击播放，游戏不会自动播放视频。",
+  "在播放器里点播放，或直接点左边的章节，节目会从那里开始播。",
   "按住弹弓上的坚果向后拖动瞄准，松开即可发射。",
   "打掉所有目标即可过关；发数用完还没打完，就重开再来。",
   "点「选关」可以重玩已解锁的关卡，星星和最高分都记在那里。",

@@ -40,8 +40,8 @@ export const PODCAST: Podcast | null = {
 
 How the player behaves, by design:
 
-- It is the official external player, `https://player.bilibili.com/player.html?bvid=…&p=…&t=…&autoplay=0`. Nothing is scraped, proxied or downloaded.
-- The first playback needs a click inside the player. The page never autoplays.
+- It is the official external player, `https://player.bilibili.com/player.html?bvid=…&p=…&t=…&autoplay=…`. Nothing is scraped, proxied or downloaded.
+- On page load nothing plays; the user presses play in the player. Clicking a chapter jumps there and starts playing (`autoplay=1`, with the click as the user gesture). Browsers that block this, Safari in particular, fall back to showing the player paused at the chapter.
 - The highlighted chapter is the one the user clicked. There is no live chapter tracking, playback position or custom seek bar, because the iframe exposes no supported API for them.
 - `在 B 站打开` always links to the selected video on bilibili.com, in case embedding is blocked for that video.
 
