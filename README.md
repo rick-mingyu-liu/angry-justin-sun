@@ -21,7 +21,7 @@ npm run lint
 
 ## Configure the podcast
 
-The programme is set in `src/podcast/podcastData.ts`. It currently points at `BV1fcHD6cEw3` (邵艾伦Alan, 对话孙宇晨：年轻人如何抓住AI时代的机会？) with 39 chapters and no clips. The chapter titles and times come from [wolfyxbt/justin-nut](https://github.com/wolfyxbt/justin-nut), which wrote them for the YouTube upload of the same episode; both uploads are 15750 s long, but the times were not checked one by one against the Bilibili video.
+The programme is set in `src/podcast/podcastData.ts`. It currently points at `BV1fcHD6cEw3` (邵艾伦Alan, 对话孙宇晨：年轻人如何抓住AI时代的机会？) with 39 chapters. The chapter titles and times come from [wolfyxbt/justin-nut](https://github.com/wolfyxbt/justin-nut), which wrote them for the YouTube upload of the same episode; both uploads are 15750 s long, but the times were not checked one by one against the Bilibili video.
 
 To change it, edit the `Podcast` object. If `PODCAST` is `null` the panel shows `尚未配置节目`.
 
@@ -31,13 +31,12 @@ export const PODCAST: Podcast | null = {
   title: "节目标题",
   video: { bvid: "<BV 号>" }, // optional: page (分 P, from 1)
   chapters: [{ id: "intro", title: "章节标题", startSeconds: 0 }],
-  clips: [{ id: "clip-1", title: "切片标题", video: { bvid: "<BV 号>", startSeconds: 0 } }],
 };
 ```
 
 - `bvid` is the `BV…` id from the video URL (`https://www.bilibili.com/video/BV…`). An invalid id leaves the panel in the unconfigured state.
 - `startSeconds` is in seconds. Check every chapter time against the real video; the app does not verify them.
-- Chapters seek the main video by reloading the iframe with `t=<seconds>`. Clips load their own video.
+- Chapters seek the video by reloading the iframe with `t=<seconds>`.
 
 How the player behaves, by design:
 
@@ -48,7 +47,7 @@ How the player behaves, by design:
 
 ## What is in the game
 
-- Eight levels (`src/game/levels.ts`, titles and hints in `src/game/levelCatalog.ts`): a tutorial, a deck on thin legs that collapses, a log cabin, a glass tower, a TNT table, two towers, a stone fort and a three-part finale. A level unlocks when the previous one is cleared. To add one, append a blueprint to `levels.ts` and an entry to `levelCatalog.ts`; the level selector and progress rules follow the catalog.
+- Eight levels (`src/game/levels.ts`, titles and hints in `src/game/levelCatalog.ts`): a tutorial, a deck on thin legs that collapses, a log cabin, a glass tower, a TNT table, two towers, a stone fort and a three-part finale. A level unlocks when the previous one is cleared. `选关` in the toolbar opens the level page (stars, best score, locks); the game pauses while it is open. To add a level, append a blueprint to `levels.ts` and an entry to `levelCatalog.ts`; the level page and progress rules follow the catalog.
 - Two appearances (`src/game/characters.ts`): 坚果孙哥 and 肌肉孙哥. The second unlocks on entering level 3. They share one collision circle and the same launch physics; only the sprite differs. Switching is possible while a walnut sits in the slingshot, applies to it and the waiting ones, and costs no shot.
 - Sound effects start muted (`游戏音效：关`) and play at a low volume when enabled. There is no background music. The toggle does not touch the podcast.
 - The game pauses when the tab goes to the background and stays paused until `继续` is pressed.

@@ -56,6 +56,14 @@ const ICONS = {
   info: { paths: ["M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z", "M12 11v5.5", "M12 7.6v.1"] },
   external: { paths: ["M13.5 5H19v5.5", "M19 5l-8 8", "M17.5 14v4.5h-12v-12H10"] },
   chevron: { paths: ["M7 9.5l5 5 5-5"] },
+  grid: {
+    paths: [
+      "M5 5h5.5v5.5H5z",
+      "M13.5 5H19v5.5h-5.5z",
+      "M5 13.5h5.5V19H5z",
+      "M13.5 13.5H19V19h-5.5z",
+    ],
+  },
   close: { paths: ["M6.5 6.5l11 11", "M17.5 6.5l-11 11"] },
 } satisfies Record<string, IconDefinition>;
 

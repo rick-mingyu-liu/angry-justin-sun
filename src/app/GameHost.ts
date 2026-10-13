@@ -61,7 +61,11 @@ export class GameHost implements SfxControl {
   private result: LevelResult | null = null;
 
   private readonly title = el("h2", "toolbar__title");
-  private readonly levelButtons = new Map<number, HTMLButtonElement>();
+  private readonly levelMenuButton = button("btn", "选关", "grid");
+  private readonly levelMenu = el("dialog", "help level-menu");
+  private readonly levelMenuGrid = el("ol", "level-menu__grid");
+  /** True when opening the level page is what paused the game. */
+  private menuPausedGame = false;
   private readonly pauseButton = button("btn", "暂停", "pause");
   private readonly restartButton = button("btn", "重开", "restart");
   private readonly mount = el("div", "stage__mount");
@@ -190,11 +194,6 @@ export class GameHost implements SfxControl {
     }
   }
 
-  private requestLevel(levelId: number): void {
-    if (!canEnterLevel(this.store.get(), levelId)) return;
-    this.adapter?.loadLevel(levelId);
-  }
-
   private requestCharacter(id: CharacterId): void {
     const adapter = this.adapter;
     if (!adapter || !isCharacterUnlocked(this.store.get(), id)) return;
@@ -212,36 +211,114 @@ export class GameHost implements SfxControl {
     panel.setAttribute("aria-label", "弹弓游戏");
     panel.append(this.buildToolbar(), this.buildStage(), this.buildHintBar());
 
-    root.append(panel, this.buildCharacters());
+    root.append(panel, this.buildCharacters(), this.buildLevelMenu());
     return root;
   }
 
   private buildToolbar(): HTMLElement {
     const toolbar = el("div", "toolbar");
 
-    const levels = el("ol", "levels");
-    levels.setAttribute("aria-label", "选择关卡");
-    for (const level of LEVEL_CATALOG) {
-      const levelButton = el("button", "levels__btn");
-      levelButton.type = "button";
-      levelButton.append(el("span", "levels__number", String(level.id)));
-      const lock = el("span", "levels__lock");
-      lock.append(icon("lock"));
-      levelButton.append(lock);
-      levelButton.addEventListener("click", () => this.requestLevel(level.id));
-      this.levelButtons.set(level.id, levelButton);
-      const item = el("li", "levels__item");
-      item.append(levelButton);
-      levels.append(item);
-    }
-
     const actions = el("div", "toolbar__actions");
     this.pauseButton.element.addEventListener("click", () => this.togglePause());
     this.restartButton.element.addEventListener("click", () => this.adapter?.restartLevel());
-    actions.append(this.pauseButton.element, this.restartButton.element);
+    this.levelMenuButton.element.addEventListener("click", () => this.openLevelMenu());
+    actions.append(
+      this.levelMenuButton.element,
+      this.pauseButton.element,
+      this.restartButton.element
+    );
 
-    toolbar.append(this.title, levels, actions);
+    toolbar.append(this.title, actions);
     return toolbar;
+  }
+
+  /** The level selection page: a modal grid with stars and best scores. */
+  private buildLevelMenu(): HTMLDialogElement {
+    const dialog = this.levelMenu;
+    dialog.setAttribute("aria-labelledby", "level-menu-heading");
+
+    const head = el("div", "help__head");
+    const heading = el("h2", "help__heading", "选择关卡");
+    heading.id = "level-menu-heading";
+    const form = el("form");
+    form.method = "dialog";
+    const close = el("button", "btn btn--icon");
+    close.type = "submit";
+    close.setAttribute("aria-label", "返回游戏");
+    close.append(icon("close"));
+    form.append(close);
+    head.append(heading, form);
+
+    dialog.append(head, this.levelMenuGrid);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    // Fires for the close button, Esc, the backdrop and picking a level.
+    dialog.addEventListener("close", () => {
+      if (this.menuPausedGame) this.adapter?.resume();
+      this.menuPausedGame = false;
+    });
+    return dialog;
+  }
+
+  private openLevelMenu(): void {
+    const adapter = this.adapter;
+    if (!adapter || !this.started || this.levelMenu.open) return;
+    this.renderLevelMenu();
+    if (!adapter.isPaused() && !this.result) {
+      adapter.pause();
+      this.menuPausedGame = adapter.isPaused();
+    }
+    this.levelMenu.showModal();
+  }
+
+  private pickLevel(levelId: number): void {
+    if (!canEnterLevel(this.store.get(), levelId)) return;
+    // Loading a level starts it unpaused, so the close handler must not resume.
+    this.menuPausedGame = false;
+    this.levelMenu.close();
+    this.adapter?.loadLevel(levelId);
+  }
+
+  private renderLevelMenu(): void {
+    const progress = this.store.get();
+    const items = LEVEL_CATALOG.map((level) => {
+      const locked = !canEnterLevel(progress, level.id);
+      const best = progress.levels[level.id];
+      const card = el("button", "level-card");
+      card.type = "button";
+      card.disabled = locked;
+      if (level.id === this.levelId) card.setAttribute("aria-current", "true");
+
+      const number = el("span", "level-card__number", String(level.id));
+      const name = el("span", "level-card__name", level.title);
+      const stars = el("span", "level-card__stars");
+      const earned = Math.max(0, Math.min(MAX_STARS, Math.round(best?.stars ?? 0)));
+      for (let index = 0; index < MAX_STARS; index += 1) {
+        stars.append(icon("star", index < earned ? "icon star is-earned" : "icon star"));
+      }
+      const status = locked
+        ? "通关上一关后解锁"
+        : best
+          ? `最高 ${formatScore(best.bestScore)}`
+          : "未通关";
+      card.append(number, name, stars, el("span", "level-card__status", status));
+      if (locked) {
+        const lock = el("span", "level-card__lock");
+        lock.append(icon("lock"));
+        card.append(lock);
+      }
+      card.setAttribute(
+        "aria-label",
+        `第 ${level.id} 关 · ${level.title}，${locked ? "未解锁" : `${earned} 星，${status}`}`
+      );
+      card.addEventListener("click", () => this.pickLevel(level.id));
+
+      const item = el("li");
+      item.append(card);
+      return item;
+    });
+    this.levelMenuGrid.replaceChildren(...items);
   }
 
   private buildStage(): HTMLElement {
@@ -317,26 +394,12 @@ export class GameHost implements SfxControl {
   }
 
   private renderToolbar(): void {
-    const progress = this.store.get();
     const entry = getLevelEntry(this.levelId);
     this.title.textContent = `第 ${entry.id} 关 · ${entry.title}`;
 
-    for (const level of LEVEL_CATALOG) {
-      const levelButton = this.levelButtons.get(level.id);
-      if (!levelButton) continue;
-      const locked = !canEnterLevel(progress, level.id);
-      const current = level.id === this.levelId;
-      levelButton.disabled = locked || !this.started;
-      levelButton.classList.toggle("is-locked", locked);
-      levelButton.setAttribute("aria-disabled", String(locked));
-      levelButton.setAttribute(
-        "aria-label",
-        `第 ${level.id} 关 · ${level.title}${locked ? "（未解锁）" : ""}`
-      );
-      levelButton.title = locked ? "通关上一关后解锁" : `第 ${level.id} 关 · ${level.title}`;
-      if (current) levelButton.setAttribute("aria-current", "true");
-      else levelButton.removeAttribute("aria-current");
-    }
+    this.levelMenuButton.label.textContent = `选关 ${this.levelId}/${TOTAL_LEVELS}`;
+    this.levelMenuButton.element.disabled = !this.started;
+    if (this.levelMenu.open) this.renderLevelMenu();
 
     this.pauseButton.label.textContent = this.paused ? "继续" : "暂停";
     this.pauseButton.setIcon(this.paused ? "play" : "pause");
@@ -416,7 +479,9 @@ export class GameHost implements SfxControl {
     if (result.kind === "failed") {
       const card = this.overlayCard("差一点！");
       card.append(this.overlayScores([["得分", result.score]]));
-      card.append(this.overlayActions(["重开", () => this.adapter?.restartLevel()]));
+      card.append(
+        this.overlayActions(["重开", () => this.adapter?.restartLevel()], this.levelMenuAction())
+      );
       return card;
     }
 
@@ -442,10 +507,18 @@ export class GameHost implements SfxControl {
     const replay: [string, () => void] = ["再玩一次", () => this.adapter?.restartLevel()];
     card.append(
       hasNext
-        ? this.overlayActions(["下一关", () => this.adapter?.loadLevel(nextLevel)], replay)
-        : this.overlayActions(replay)
+        ? this.overlayActions(
+            ["下一关", () => this.adapter?.loadLevel(nextLevel)],
+            replay,
+            this.levelMenuAction()
+          )
+        : this.overlayActions(replay, this.levelMenuAction())
     );
     return card;
+  }
+
+  private levelMenuAction(): [string, () => void] {
+    return ["选关", () => this.openLevelMenu()];
   }
 
   private overlayCard(title: string, detail?: string): HTMLElement {

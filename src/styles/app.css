@@ -291,14 +291,6 @@ noscript {
   line-height: 1.2;
 }
 
-.podcast__badge {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 .podcast__player {
   flex: none;
   position: relative;
@@ -445,49 +437,17 @@ noscript {
   display: none;
 }
 
-.podcast__tabs {
+.podcast__list-heading {
+  display: none;
   flex: none;
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--line);
-}
-
-.podcast__tab {
-  position: relative;
+  align-self: flex-start;
   min-height: 42px;
   padding: 0 14px;
-  border: 0;
-  border-radius: 8px 8px 0 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 120ms ease;
-}
-
-.podcast__tab:hover {
-  color: var(--ink);
-}
-
-.podcast__tab::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: transparent;
-}
-
-.podcast__tab[aria-selected="true"] {
+  border-bottom: 3px solid var(--pink);
   color: var(--pink-ink);
+  font-size: 15px;
   font-weight: 800;
-}
-
-.podcast__tab[aria-selected="true"]::after {
-  background: var(--pink);
+  line-height: 42px;
 }
 
 .podcast__list {
@@ -612,74 +572,6 @@ noscript {
   display: flex;
   gap: 8px;
   margin-left: auto;
-}
-
-.levels {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  justify-items: center;
-  width: 100%;
-  max-width: 420px;
-}
-
-.levels__item {
-  display: flex;
-  align-items: center;
-}
-
-.levels__btn {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: #e4e8f0;
-  color: var(--ink-soft);
-  font-size: 16px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition:
-    background-color 120ms ease,
-    transform 120ms ease;
-}
-
-.levels__btn:hover:not(:disabled) {
-  background: #d6dce8;
-}
-
-.levels__btn[aria-current="true"] {
-  background: var(--amber);
-  color: var(--navy-900);
-  box-shadow: 0 0 0 3px var(--amber-soft);
-}
-
-.levels__btn.is-locked {
-  background: #eff1f5;
-  color: #b3bac8;
-  cursor: not-allowed;
-}
-
-.levels__lock {
-  display: none;
-  position: absolute;
-  right: -5px;
-  bottom: -4px;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-  background: #8891a3;
-  color: #ffffff;
-  font-size: 9px;
-}
-
-.levels__btn.is-locked .levels__lock {
-  display: grid;
 }
 
 .stage {
@@ -1086,6 +978,98 @@ noscript {
 
 /* ------------------------------------------------------------------ desktop */
 
+/* ---- level selection page ---- */
+
+.level-menu {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.level-menu__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 8px 20px 22px;
+  overflow-y: auto;
+}
+
+.level-card {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  width: 100%;
+  min-height: 132px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.level-card:hover:not(:disabled) {
+  border-color: var(--amber);
+  transform: translateY(-1px);
+}
+
+.level-card[aria-current="true"] {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.level-card:disabled {
+  background: #f3f5f9;
+  color: #a2aaba;
+  cursor: not-allowed;
+}
+
+.level-card__number {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--navy-900);
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.level-card:disabled .level-card__number {
+  background: #dfe3eb;
+  color: #8891a3;
+}
+
+.level-card__name {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.level-card__stars {
+  display: flex;
+  gap: 2px;
+  font-size: 18px;
+}
+
+.level-card__status {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.level-card__lock {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #8891a3;
+  font-size: 16px;
+}
+
 @media (min-width: 900px) {
   :root {
     --header-h: 56px;
@@ -1171,6 +1155,10 @@ noscript {
     display: none;
   }
 
+  .podcast__list-heading {
+    display: block;
+  }
+
   .podcast__browser,
   .podcast__browser[data-collapsed="true"] {
     display: flex;
@@ -1197,33 +1185,12 @@ noscript {
     white-space: nowrap;
   }
 
-  .toolbar .levels {
-    display: flex;
-    flex: none;
-    width: auto;
-    max-width: none;
-  }
-
-  .levels__item + .levels__item::before {
-    content: "";
-    width: 8px;
-    margin: 0 3px;
-    border-top: 3px dotted var(--line-strong);
-  }
-
   .toolbar__actions {
     flex: none;
     justify-content: flex-end;
   }
 
-  .levels__btn {
-    width: 32px;
-    height: 32px;
-    font-size: 15px;
-  }
-
-  /* Narrow game column: drop the connectors and button text so the level
-     title and all eight level buttons still fit on one line. */
+  /* Narrow game column: icon-only toolbar buttons so the level title fits. */
   .game__panel {
     container-type: inline-size;
   }
@@ -1235,18 +1202,6 @@ noscript {
 
     .toolbar__title {
       font-size: 17px;
-    }
-
-    .levels__item + .levels__item::before {
-      width: 0;
-      margin: 0 2px;
-      border: 0;
-    }
-
-    .levels__btn {
-      width: 28px;
-      height: 28px;
-      font-size: 14px;
     }
 
     .toolbar__actions .btn {
@@ -1391,7 +1346,6 @@ noscript {
     font-size: 18px;
   }
 
-  .toolbar .levels,
   .toolbar__actions {
     flex: none;
   }
