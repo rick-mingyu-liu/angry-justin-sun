@@ -59,7 +59,12 @@ export class PodcastPanel {
     const head = el("header", "podcast__head");
     const heading = el("h2", "podcast__heading", "边听边玩");
     heading.id = "podcast-heading";
-    head.append(heading, el("span", "podcast__source", "bilibili"));
+    const badge = el("img", "podcast__badge");
+    badge.src = "UI/podcast-badge.png";
+    badge.alt = "";
+    badge.width = 36;
+    badge.height = 36;
+    head.append(heading, badge);
 
     const open = el("p", "podcast__open");
     this.openLink.target = "_blank";

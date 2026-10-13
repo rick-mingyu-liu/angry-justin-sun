@@ -291,11 +291,12 @@ noscript {
   line-height: 1.2;
 }
 
-.podcast__source {
-  color: var(--pink);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+.podcast__badge {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .podcast__player {
@@ -1164,10 +1165,6 @@ noscript {
 
   .podcast__heading {
     font-size: 26px;
-  }
-
-  .podcast__source {
-    font-size: 17px;
   }
 
   .podcast__title {
