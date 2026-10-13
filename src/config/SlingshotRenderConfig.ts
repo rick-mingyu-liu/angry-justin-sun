@@ -2,7 +2,8 @@ export const SlingshotBandConfig = {
   depth: {
     rightBand: 23,
     pouchShadow: 22,
-    frontPouch: 41,
+    // Podcast Slingshot: behind the projectile (depth 30) so it does not cover the face.
+    frontPouch: 29,
     leftBand: 45,
   },
   colors: {

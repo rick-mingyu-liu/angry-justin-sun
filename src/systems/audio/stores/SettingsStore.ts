@@ -1,9 +1,10 @@
 import type { ISettingsProvider, AudioSettings } from "../../../interfaces/audio";
 import { SETTINGS_DEBOUNCE_MS } from "../config/AudioConfig";
 
-export class SettingsStore implements ISettingsProvider {
-  private static readonly STORAGE_KEY = "angry-aliens-audio-settings";
+/** Effects sit well under the podcast; they start muted and stay quiet when enabled. */
+const GAME_SFX_VOLUME = 0.25;
 
+export class SettingsStore implements ISettingsProvider {
   private settings: AudioSettings;
   private listeners: Set<(settings: AudioSettings) => void> = new Set();
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -80,34 +81,21 @@ export class SettingsStore implements ISettingsProvider {
     });
   }
 
+  // Podcast Slingshot: the host page owns the sound preference
+  // (src/storage/progress.ts) and pushes it in through the game adapter, so
+  // this store no longer reads or writes localStorage itself.
   private loadFromStorage(): AudioSettings {
-    try {
-      const stored = localStorage.getItem(SettingsStore.STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return {
-          musicEnabled: parsed.musicEnabled ?? true,
-          sfxEnabled: parsed.sfxEnabled ?? true,
-          musicVolume: Math.max(0, Math.min(1, parsed.musicVolume ?? 0.5)),
-          sfxVolume: Math.max(0, Math.min(1, parsed.sfxVolume ?? 1.0)),
-        };
-      }
-    } catch {
-      // Ignore parse errors
-    }
     return this.getDefaultSettings();
   }
 
-  private saveToStorage(): void {
-    localStorage.setItem(SettingsStore.STORAGE_KEY, JSON.stringify(this.settings));
-  }
+  private saveToStorage(): void {}
 
   private getDefaultSettings(): AudioSettings {
     return {
-      musicEnabled: true,
-      sfxEnabled: true,
-      musicVolume: 0.3,
-      sfxVolume: 1.0,
+      musicEnabled: false,
+      sfxEnabled: false,
+      musicVolume: 0,
+      sfxVolume: GAME_SFX_VOLUME,
     };
   }
 }

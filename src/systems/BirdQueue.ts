@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { BirdType } from "../types/BirdType";
-import { BIRD_PHYSICS, BIRD_ASSET_MAP } from "../config/PhysicsConfig";
-import { LEVEL_ATLAS_KEY } from "../config/assetManifest";
+import { BIRD_PHYSICS } from "../config/PhysicsConfig";
+import { characterSpriteScale, getActiveCharacter } from "../game/characters";
 import { BirdQueueConfig } from "../config/BirdQueueConfig";
 import type { IBirdQueue } from "../interfaces/IBirdQueue";
 import type { Position } from "../types/Vector2";
@@ -97,27 +97,18 @@ export class BirdQueue implements IBirdQueue {
   }
 
   private animateWalkIn(): void {
-    const birdTextures: Record<BirdType, string> = {
-      [BirdType.RED]: "alienPink_round",
-      [BirdType.YELLOW]: "alienYellow_round",
-      [BirdType.BLACK]: "alienBeige_round",
-      [BirdType.WHITE]: "alienPink_square",
-      [BirdType.BLUE]: "alienBlue_round",
-    };
-
     this.queue.forEach((birdType, index) => {
       const targetPos = this.getQueuePosition(index);
-      const texture = birdTextures[birdType];
       const scale = this.getDisplayScale(birdType);
 
       const sprite = this.scene.add.image(
         BirdQueueConfig.layout.spawnX,
         this.groundY,
-        LEVEL_ATLAS_KEY,
-        texture
+        getActiveCharacter().textureKey
       );
 
-      sprite.setOrigin(0.5, 1);
+      // Character sprites carry transparent padding below the feet.
+      sprite.setOrigin(0.5, 0.93);
       sprite.setScale(scale);
       sprite.setDepth(BirdQueueConfig.depth);
       sprite.setAlpha(1);
@@ -243,12 +234,13 @@ export class BirdQueue implements IBirdQueue {
   }
 
   private getDisplayScale(birdType: BirdType): number {
-    const config = BIRD_PHYSICS[birdType];
-    const assetKey = BIRD_ASSET_MAP[birdType];
-    const texture = this.scene.textures.get(LEVEL_ATLAS_KEY);
-    const frame = texture?.get(assetKey);
-    const frameWidth = frame ? frame.cutWidth : 70;
-    return (config.radius * 2) / frameWidth;
+    return characterSpriteScale(BIRD_PHYSICS[birdType].radius);
+  }
+
+  /** Podcast Slingshot: re-skins the projectiles still waiting on the ground. */
+  applyActiveCharacter(): void {
+    const textureKey = getActiveCharacter().textureKey;
+    this.birdSprites.forEach((sprite) => sprite.setTexture(textureKey));
   }
 
   jumpToPouch(

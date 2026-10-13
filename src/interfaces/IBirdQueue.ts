@@ -18,5 +18,6 @@ export interface IBirdQueue {
     ) => void,
     onComplete: (landingX: number, landingY: number) => void
   ): void;
+  applyActiveCharacter(): void;
   destroy(): void;
 }

@@ -2,20 +2,20 @@ import Phaser from "phaser";
 import { bootstrapAudio } from "../config/bootstrap";
 import { DesignTokens as T } from "../config/DesignTokens";
 import { LayoutManager } from "../ui/LayoutManager";
-import { MobileManager } from "../systems/mobile";
 import { FragmentWorkerClient } from "../workers/fragmentWorkerClient";
 import {
   BOOT_SCENE_CONFIG,
   BOOT_PROGRESS_BAR_CONFIG,
   BOOT_SCENE_TEXT_CONFIG,
 } from "../config/BootSceneConfig";
+import { CHARACTERS } from "../game/characters";
+import { HOST_LEVEL_REGISTRY_KEY } from "../game/hostKeys";
 
 const TIPS = [
-  "Aim for the Aliens!",
-  "Some blocks are easier to break than others.",
-  "Friendly Aliens have different abilities.",
-  "Higher scores earn more stars!",
-  "Watch out for TNT crates!",
+  "拖动坚果瞄准，松开发射",
+  "玻璃最脆，木头次之，石头最硬",
+  "打掉支撑，让上面的塌下来",
+  "剩余的发数越多，得分越高",
 ];
 
 const PROGRESS_WIDTH = BOOT_PROGRESS_BAR_CONFIG.width;
@@ -73,7 +73,7 @@ export class BootScene extends Phaser.Scene {
     this.progressBarFill = this.add.graphics();
     this.drawProgressFill(0);
 
-    this.loadingText = this.add.text(CENTER_X, CENTER_Y + C.loadingTextY, "LOADING...", {
+    this.loadingText = this.add.text(CENTER_X, CENTER_Y + C.loadingTextY, "加载中…", {
       fontFamily: T.fonts.family,
       fontSize: `${T.fonts.sizes.button}px`,
       color: T.colors.neutral.white,
@@ -163,7 +163,7 @@ export class BootScene extends Phaser.Scene {
       duration: T.duration.fast,
       ease: "Quad.In",
       onComplete: () => {
-        this.tipText.setText(`"${tip}"`);
+        this.tipText.setText(tip);
         this.tweens.add({
           targets: this.tipText,
           alpha: 1,
@@ -177,13 +177,15 @@ export class BootScene extends Phaser.Scene {
   }
 
   private onLoadComplete(): void {
-    this.loadingText.setText("READY!");
+    this.loadingText.setText("准备好了");
 
     FragmentWorkerClient.getInstance();
 
     this.cameras.main.fadeOut(C.fadeOutDuration, 0, 0, 0);
     this.time.delayedCall(C.fadeOutDuration, () => {
-      this.scene.start("MenuScene");
+      // Podcast Slingshot: no menu or level-select scenes; the host page picks the level.
+      const level = (this.registry.get(HOST_LEVEL_REGISTRY_KEY) as number | undefined) ?? 1;
+      this.scene.start("GameScene", { level });
     });
   }
 
@@ -195,6 +197,13 @@ export class BootScene extends Phaser.Scene {
     this.loadVFX();
     this.loadAudio();
     this.loadShaders();
+    this.loadCharacters();
+  }
+
+  private loadCharacters(): void {
+    CHARACTERS.forEach((character) => {
+      this.load.image(character.textureKey, character.assetPath);
+    });
   }
 
   private loadShaders(): void {
@@ -229,21 +238,6 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(`#${C.backgroundColor.toString(16).padStart(6, "0")}`);
     bootstrapAudio(this.game, this);
-    this.setupMobileFeatures();
-  }
-
-  private setupMobileFeatures(): void {
-    const mobileManager = MobileManager.getInstance();
-
-    // Setup auto-fullscreen on first touch for mobile
-    if (mobileManager.isMobile()) {
-      this.input.once("pointerdown", () => {
-        mobileManager.requestFullscreen();
-      });
-    }
-
-    // Attempt to lock orientation to landscape
-    mobileManager.lockLandscape();
   }
 
   shutdown(): void {

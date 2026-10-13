@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { SlingshotState } from "../objects/slingshot-modules/SlingshotConfig";
-import { getLevelById, LevelData } from "../data/levels";
+import type { LevelData } from "../data/levels";
+import { getMvpLevelById } from "../game/levels";
 import type { Pig } from "../objects/Pig";
 import type { Block } from "../objects/Block";
 import { ExplosionShaderManager } from "../systems/ExplosionShaderManager";
@@ -111,6 +112,9 @@ export class GameScene extends Phaser.Scene {
     this.pendingTimers.forEach((t) => t.remove());
     this.pendingTimers = [];
 
+    this.gameLifecycleManager?.dispose();
+    this.audioSystem?.jingles.stop();
+
     destroyFastBodyCollisionDetector();
 
     if (this.touchFeedbackManager) {
@@ -181,7 +185,7 @@ export class GameScene extends Phaser.Scene {
 
   init(data: SceneInitData): void {
     this.level = data.level || 1;
-    this.levelData = getLevelById(this.level) || null;
+    this.levelData = getMvpLevelById(this.level) || null;
 
     this.container = getServiceContainer().createChild();
 
@@ -219,7 +223,13 @@ export class GameScene extends Phaser.Scene {
     this.buildLevel();
 
     this.setupEvents();
-    this.launchUIScene();
+
+    // Podcast Slingshot: the HUD, pause and result dialogs live in the host
+    // page, so the upstream UIScene is not launched.
+    gameEvents.emit("host:level-started", {
+      level: this.level,
+      shotsRemaining: this.gameStateManager.getBirdsRemaining(),
+    });
 
     // Start intro pan — bird spawn gated until pan completes
     this.cameraController.startIntroPan(() => {
@@ -299,8 +309,7 @@ export class GameScene extends Phaser.Scene {
   private setupAudio(): void {
     this.sound.pauseOnBlur = false;
 
-    const theme = this.getThemeForLevel();
-    this.audioSystem.music.playLevelMusic(theme);
+    // Podcast Slingshot: no looping background music under the podcast.
 
     this.input.once("pointerdown", () => {
       this.audioSystem.context.unlock();
@@ -369,7 +378,10 @@ export class GameScene extends Phaser.Scene {
       onCameraZoom: (delta) => {
         this.cameraController.handleManualZoom(delta);
       },
-      onPauseToggle: () => this.togglePause(),
+      // Podcast Slingshot: pausing belongs to the host page's button. Phaser
+      // listens for keys on window, so Esc here would also fire when closing
+      // the help dialog.
+      onPauseToggle: () => {},
       onFire: () => this.birdLaunchOrchestrator.fireBird(),
       onAbilityActivate: () => {},
     };
@@ -552,8 +564,31 @@ export class GameScene extends Phaser.Scene {
 
   // ==================== UI & STATE ====================
 
-  private launchUIScene(): void {
-    this.scene.launch("UIScene", { level: this.level });
+  // ==================== HOST PAGE API ====================
+
+  /** True while a projectile is in the slingshot, not being dragged, and nothing is in flight. */
+  public isProjectileReady(): boolean {
+    return (
+      !this.gameStateManager.isGameOver() &&
+      !this.inputHandler.isAiming() &&
+      this.birdLaunchOrchestrator.hasReadyBird()
+    );
+  }
+
+  /** Re-skins the ready projectile and the waiting ones with the active character. */
+  public applyActiveCharacter(): void {
+    this.birdLaunchOrchestrator.getCurrentBird()?.applyActiveCharacter();
+    this.birdQueueSystem.applyActiveCharacter();
+  }
+
+  /** Drops an in-progress drag so a pause cannot leave the slingshot half pulled. */
+  public cancelAim(): void {
+    const wasAiming = this.inputHandler.isAiming();
+    this.inputHandler.resetPointerState();
+    if (!wasAiming) return;
+    this.cameraController.clearAimAssist();
+    this.slingshot.cancel();
+    this.slingshot.clearTrajectory();
   }
 
   private updateUI(): void {
@@ -568,13 +603,9 @@ export class GameScene extends Phaser.Scene {
   private updateBirdQueueUI(): void {
     const queue = this.birdQueueSystem?.getQueue() ?? [];
     gameEvents.emit("ui-birdQueue", { queue });
-  }
-
-  private togglePause(): void {
-    if (this.gameStateManager.isGameOver()) return;
-
-    this.gameStateManager.togglePause();
-    gameEvents.emit("ui-pause", { isPaused: this.gameStateManager.isPaused() });
+    gameEvents.emit("host:shots-changed", {
+      remaining: this.gameStateManager.getBirdsRemaining(),
+    });
   }
 
   // ==================== GAME STATE ====================

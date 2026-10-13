@@ -24,6 +24,7 @@ import { BlockMaterial } from "../constants/Materials";
 import { BirdStateMachine } from "./bird/BirdStateMachine";
 import type { IWakeCascadeManager } from "../interfaces/IWakeCascadeManager";
 import { TimeScaleCompensator } from "../utils/TimeScaleCompensator";
+import { characterSpriteScale, getActiveCharacter } from "../game/characters";
 
 export { BirdType, BirdState };
 
@@ -104,7 +105,18 @@ export class Bird implements IBird {
       bodyShape = { type: "circle", radius: config.radius };
     }
 
-    this.matterImage = this.scene.matter.add.image(x, y, "level", assetKey, {
+    // Podcast Slingshot: circular projectiles render the selected character
+    // sprite. The body is created oversized by 1/scale so that setScale()
+    // (which also scales the Matter body) lands on exactly config.radius.
+    const characterScale = bodyShape.type === "circle" ? characterSpriteScale(config.radius) : null;
+    if (characterScale !== null) {
+      bodyShape.radius = config.radius / characterScale;
+    }
+
+    const textureKey = characterScale !== null ? getActiveCharacter().textureKey : "level";
+    const frameKey = characterScale !== null ? undefined : assetKey;
+
+    this.matterImage = this.scene.matter.add.image(x, y, textureKey, frameKey, {
       shape: bodyShape,
       density: config.density,
       restitution: config.restitution,
@@ -114,7 +126,7 @@ export class Bird implements IBird {
     });
 
     const texture = this.matterImage.texture;
-    const frame = texture.get(assetKey);
+    const frame = frameKey ? texture.get(frameKey) : null;
     const frameWidth = frame ? frame.cutWidth : texture.source[0].width;
     const frameHeight = frame ? frame.cutHeight : texture.source[0].height;
 
@@ -122,6 +134,8 @@ export class Bird implements IBird {
       const scaleX = config.width / frameWidth;
       const scaleY = config.height / frameHeight;
       this.matterImage.setScale(scaleX, scaleY);
+    } else if (characterScale !== null) {
+      this.matterImage.setScale(characterScale);
     } else {
       const visualDiameter = config.radius * 2;
       const scale = visualDiameter / frameWidth;
@@ -251,8 +265,8 @@ export class Bird implements IBird {
 
     this.scene.tweens.add({
       targets: this.matterImage,
-      scaleX: stretchX,
-      scaleY: stretchY,
+      scaleX: this.matterImage.scaleX * stretchX,
+      scaleY: this.matterImage.scaleY * stretchY,
       duration: BIRD_LAUNCH_ANIMATION_CONFIG.duration,
       yoyo: true,
       ease: "Power2",
@@ -265,6 +279,14 @@ export class Bird implements IBird {
       bird: this,
       velocity: { x: velocityX, y: velocityY },
     });
+  }
+
+  /** Swaps the sprite of a projectile that has not been launched yet. */
+  public applyActiveCharacter(): boolean {
+    if (this.launched || this._destroyed || !this.matterImage) return false;
+    if (BIRD_PHYSICS[this.type].width) return false;
+    this.matterImage.setTexture(getActiveCharacter().textureKey);
+    return true;
   }
 
   public transitionToState(stateName: string): void {

@@ -18,6 +18,7 @@ import type { GameHapticsManager } from "../../systems/mobile/GameHapticsManager
 import { gameObjectFactory } from "../../factories";
 import type { BirdShapeConfig } from "../../utils/TrajectorySimulator";
 import type { EntityManager } from "./EntityManager";
+import { gameEvents } from "../../events/EventBus";
 
 interface CameraMotionSource {
   getPosition(): Position;
@@ -149,9 +150,20 @@ export class BirdLaunchOrchestrator {
               mass: birdConfig.density * Math.PI * birdConfig.radius * birdConfig.radius,
             };
             slingshot.placeBird(matterImage, birdShape);
+            gameEvents.emit("host:projectile-ready", { ready: true });
           }
         }
       }
+    );
+  }
+
+  /** True while a projectile sits in the slingshot and has not been launched. */
+  hasReadyBird(): boolean {
+    return !!(
+      this.currentBird &&
+      !this.currentBird.isDestroyed() &&
+      !this.currentBird.isLaunched() &&
+      this.deps.slingshot.getState() === SlingshotState.READY
     );
   }
 
@@ -244,6 +256,7 @@ export class BirdLaunchOrchestrator {
 
     this.deps.sfx.playBirdLaunch(launchSpeed);
     this.deps.hapticsManager?.triggerSlingshotFire();
+    gameEvents.emit("host:projectile-ready", { ready: false });
     this.currentBird.launch(velocity.x, velocity.y);
     this.deps.gameStateManager.decrementBirds();
     this.deps.updateUI();

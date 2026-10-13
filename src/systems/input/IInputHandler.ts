@@ -48,6 +48,7 @@ export interface IInputHandler {
    * Set aiming state
    */
   setAiming(aiming: boolean): void;
+  resetPointerState(): void;
 
   /**
    * Cleanup input listeners

@@ -242,7 +242,7 @@ export class ScorePopupManager implements IScorePopupManager {
 
     const text = this.comboTextPool.acquire();
     text.setPosition(clampedX, clampedY - 30);
-    text.setText(`${comboCount}x COMBO!`);
+    text.setText(`${comboCount} 连击！`);
     text.setStyle({
       fontFamily: config.text.fontFamily,
       fontSize: config.text.fontSize,

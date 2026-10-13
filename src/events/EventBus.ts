@@ -51,6 +51,11 @@ export interface GameEvents {
   };
   eggDrop: { bird: Bird; x: number; y: number };
 
+  // Podcast Slingshot: published for the host page (see src/game/gameAdapter.ts)
+  "host:level-started": { level: number; shotsRemaining: number };
+  "host:shots-changed": { remaining: number };
+  "host:projectile-ready": { ready: boolean };
+
   "parallax:scroll": { scrollX: number; scrollY: number; zoom: number };
   "parallax:theme": { theme: ThemeType; transition?: boolean };
   "parallax:reset": void;

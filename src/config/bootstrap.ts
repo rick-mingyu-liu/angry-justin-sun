@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { ServiceContainer, ServiceTokens } from "./registries/ServiceContainer";
 import { GameStateManager } from "../systems/state/GameStateManager";
 import { ScoringSystem } from "../systems/scoring/ScoringSystem";
-import { ProgressManager } from "../systems/progress/ProgressManager";
+import { HostProgressManager } from "../game/HostProgressManager";
 import { VFXManager } from "../systems/VFXManager";
 import { ExplosionShaderManager } from "../systems/ExplosionShaderManager";
 import { CameraEffects } from "../systems/CameraEffects";
@@ -80,7 +80,8 @@ export function bootstrapServices(): ServiceContainer {
 
   container.register<IProgressManager>(
     ServiceTokens.PROGRESS_MANAGER,
-    () => new ProgressManager(),
+    // Podcast Slingshot: persistence is owned by the host page.
+    () => new HostProgressManager(),
     true
   );
 

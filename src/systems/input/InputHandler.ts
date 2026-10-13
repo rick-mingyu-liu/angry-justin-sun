@@ -45,7 +45,7 @@ export class InputHandler implements IInputHandler {
     this.scene.input.on("pointerdown", this.handlePointerDown, this);
     this.scene.input.on("pointermove", this.handlePointerMove, this);
     this.scene.input.on("pointerup", this.handlePointerUp, this);
-    this.scene.input.on("wheel", this.handleWheel, this);
+    // Podcast Slingshot: no wheel zoom; the wheel scrolls the host page instead.
   }
 
   private setupKeyboardInput(): void {
@@ -326,6 +326,13 @@ export class InputHandler implements IInputHandler {
 
   isDraggingCamera(): boolean {
     return this.state.isDraggingCamera;
+  }
+
+  /** Podcast Slingshot: a paused scene never sees pointerup, so drop any gesture in progress. */
+  resetPointerState(): void {
+    this.state.isAiming = false;
+    this.state.isDraggingCamera = false;
+    this.endPinchZoom();
   }
 
   setAiming(aiming: boolean): void {

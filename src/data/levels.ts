@@ -88,11 +88,11 @@ export interface GridLevelData {
 
 const SLINGSHOT_Y = GROUND_Y - GRID_UNIT;
 
-interface GridLevelBlueprint extends Omit<GridLevelData, "starThresholds"> {
+export interface GridLevelBlueprint extends Omit<GridLevelData, "starThresholds"> {
   minBirdsToClear: number;
 }
 
-const SLINGSHOT: LevelSlingshotConfig = { x: SLINGSHOT_X, y: SLINGSHOT_Y };
+export const SLINGSHOT: LevelSlingshotConfig = { x: SLINGSHOT_X, y: SLINGSHOT_Y };
 
 const BLOCK_SCORE_MULTIPLIER: Record<BlockMaterial, number> = {
   [BlockMaterial.GLASS]: 1,
@@ -121,7 +121,7 @@ function estimateStarThresholds(level: GridLevelBlueprint): StarThresholds {
   };
 }
 
-function createGridLevel(level: GridLevelBlueprint): GridLevelData {
+export function createGridLevel(level: GridLevelBlueprint): GridLevelData {
   const { minBirdsToClear: _minBirdsToClear, ...gridLevel } = level;
   return {
     ...gridLevel,
@@ -2604,7 +2604,7 @@ function gridToPixelPig(greeneling: GridPigConfig): Position {
   };
 }
 
-function convertGridLevelToLevelData(gridLevel: GridLevelData): LevelData {
+export function convertGridLevelToLevelData(gridLevel: GridLevelData): LevelData {
   const structures: LevelBlockConfig[] = gridLevel.blocks.map((block) => {
     const pixelPos = gridToPixelBlock(block);
 

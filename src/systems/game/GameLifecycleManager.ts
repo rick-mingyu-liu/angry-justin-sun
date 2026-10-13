@@ -38,9 +38,15 @@ export interface GameLifecycleCallbacks {
 export class GameLifecycleManager {
   private deps: GameLifecycleDeps;
   private callbacks: GameLifecycleCallbacks | null = null;
+  private disposed = false;
 
   constructor(deps: GameLifecycleDeps) {
     this.deps = deps;
+  }
+
+  /** Podcast Slingshot: a result that resolves after the level was torn down is dropped. */
+  dispose(): void {
+    this.disposed = true;
   }
 
   setCallbacks(callbacks: GameLifecycleCallbacks): void {
@@ -68,6 +74,7 @@ export class GameLifecycleManager {
   private winLevel(): void {
     if (this.deps.gameStateManager.isTransitioning()) return;
     this.deps.gameStateManager.triggerWin();
+    gameEvents.emit("host:projectile-ready", { ready: false });
 
     this.deps.flushCombo();
 
@@ -91,6 +98,7 @@ export class GameLifecycleManager {
 
     this.deps.scene.time.delayedCall(MISC_TIMING_CONFIG.jingleDelayMs, async () => {
       await this.deps.jingles.playWinJingle();
+      if (this.disposed) return;
       gameEvents.emit("ui-results", {
         level: this.deps.level,
         score: breakdown.total,
@@ -105,6 +113,7 @@ export class GameLifecycleManager {
   private loseLevel(): void {
     if (this.deps.gameStateManager.isTransitioning()) return;
     this.deps.gameStateManager.triggerLose();
+    gameEvents.emit("host:projectile-ready", { ready: false });
 
     this.deps.flushCombo();
 
@@ -113,6 +122,7 @@ export class GameLifecycleManager {
 
     this.deps.scene.time.delayedCall(MISC_TIMING_CONFIG.jingleDelayMs, async () => {
       await this.deps.jingles.playLoseJingle();
+      if (this.disposed) return;
       gameEvents.emit("ui-results", {
         level: this.deps.level,
         score: breakdown.total,
