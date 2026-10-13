@@ -69,7 +69,6 @@ describe("chapterVideoRef", () => {
       title: "t",
       video: { bvid: BVID, page: 2, startSeconds: 5 },
       chapters: [],
-      clips: [],
     };
     expect(chapterVideoRef(podcast, { id: "c", title: "c", startSeconds: 120 })).toEqual({
       bvid: BVID,

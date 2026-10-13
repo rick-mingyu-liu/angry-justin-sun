@@ -11,9 +11,6 @@
  * The YouTube and Bilibili uploads have the same title and the same length
  * (15750 s), so the times are expected to line up, but they were not checked
  * one by one against the Bilibili video.
- *
- * Clips: none supplied yet. A clip is its own video:
- *   { id: "clip-1", title: "…", video: { bvid: "BV…", page: 1, startSeconds: 0 } }
  */
 
 import { isValidBvid } from "./bilibili";
@@ -64,11 +61,10 @@ export const PODCAST: Podcast | null = {
     { id: "ch-38", title: "多创造，少消费：如何平衡产出与休息", startSeconds: 15139 },
     { id: "ch-39", title: "结尾：持续学习，继续更新自己", startSeconds: 15394 },
   ],
-  clips: [],
 };
 
-/** The configured podcast if its main bvid is valid; clips with invalid bvids are dropped. */
+/** The configured podcast if its bvid is valid. */
 export function getConfiguredPodcast(): Podcast | null {
   if (!PODCAST || !isValidBvid(PODCAST.video.bvid)) return null;
-  return { ...PODCAST, clips: PODCAST.clips.filter((clip) => isValidBvid(clip.video.bvid)) };
+  return PODCAST;
 }

@@ -1,7 +1,7 @@
 /**
- * PodcastPanel: left column. Programme, chapters, clips and the selected row.
+ * PodcastPanel: left column. Programme, chapter list and the selected row.
  *
- * Uses the official Bilibili iframe only. Selecting a row swaps the iframe
+ * Uses the official Bilibili iframe only. Selecting a chapter swaps the iframe
  * URL; there is no playback API, so the highlighted row is the one the user
  * picked, not live chapter tracking. Never imports game code.
  */
@@ -11,19 +11,7 @@ import { buildEmbedUrl, buildWatchUrl, chapterVideoRef, formatTimestamp } from "
 import { getConfiguredPodcast } from "./podcastData";
 import type { Podcast, VideoRef } from "./types";
 
-type TabId = "chapters" | "clips";
-
-interface TabView {
-  id: TabId;
-  tab: HTMLButtonElement;
-  panel: HTMLUListElement;
-  rows: Map<string, HTMLButtonElement>;
-}
-
 const BILIBILI_HOME_URL = "https://www.bilibili.com/";
-
-const TAB_LABELS: Record<TabId, string> = { chapters: "话题章节", clips: "精选切片" };
-const TAB_EMPTY_TEXT: Record<TabId, string> = { chapters: "暂无章节", clips: "暂无切片" };
 
 export class PodcastPanel {
   readonly element: HTMLElement;
@@ -33,20 +21,17 @@ export class PodcastPanel {
   private readonly openLink = el("a", "podcast__open-link");
   private readonly openNote = el("span", "podcast__open-note");
   private readonly browser = el("div", "podcast__browser");
-  private readonly toggle = button("podcast__toggle", "章节与切片");
-  private readonly tabs: Record<TabId, TabView>;
+  private readonly toggle = button("podcast__toggle", "话题章节");
+  private readonly list = el("ul", "podcast__list");
+  private readonly rows = new Map<string, HTMLButtonElement>();
 
   private iframe: HTMLIFrameElement | null = null;
   private embedUrl: string | null = null;
-  private activeTab: TabId = "chapters";
-  private selected: { tab: TabId; id: string } | null = null;
 
   constructor(podcast: Podcast | null = getConfiguredPodcast()) {
     this.podcast = podcast;
-    this.tabs = { chapters: this.createTab("chapters"), clips: this.createTab("clips") };
     this.element = this.build();
-    this.fillLists();
-    this.showTab("chapters");
+    this.fillList();
     this.setCollapsed(true);
     if (podcast) this.showVideo(podcast.video);
     else this.showUnconfigured();
@@ -59,12 +44,7 @@ export class PodcastPanel {
     const head = el("header", "podcast__head");
     const heading = el("h2", "podcast__heading", "边听边玩");
     heading.id = "podcast-heading";
-    const badge = el("img", "podcast__badge");
-    badge.src = "UI/podcast-badge.png";
-    badge.alt = "";
-    badge.width = 36;
-    badge.height = 36;
-    head.append(heading, badge);
+    head.append(heading);
 
     const open = el("p", "podcast__open");
     this.openLink.target = "_blank";
@@ -79,18 +59,10 @@ export class PodcastPanel {
     });
 
     this.browser.id = "podcast-browser";
-    const tablist = el("div", "podcast__tabs");
-    tablist.setAttribute("role", "tablist");
-    tablist.setAttribute("aria-label", "节目内容");
-    tablist.append(this.tabs.chapters.tab, this.tabs.clips.tab);
-    tablist.addEventListener("keydown", (event) => {
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-      event.preventDefault();
-      const next: TabId = this.activeTab === "chapters" ? "clips" : "chapters";
-      this.showTab(next);
-      this.tabs[next].tab.focus();
-    });
-    this.browser.append(tablist, this.tabs.chapters.panel, this.tabs.clips.panel);
+    const listHeading = el("h3", "podcast__list-heading", "话题章节");
+    listHeading.id = "podcast-list-heading";
+    this.list.setAttribute("aria-labelledby", listHeading.id);
+    this.browser.append(listHeading, this.list);
 
     const foot = el("p", "podcast__foot");
     foot.append(icon("info"), el("span", undefined, "切换章节不打断游戏"));
@@ -101,91 +73,39 @@ export class PodcastPanel {
     return section;
   }
 
-  private createTab(id: TabId): TabView {
-    const tab = el("button", "podcast__tab", TAB_LABELS[id]);
-    tab.type = "button";
-    tab.id = `podcast-tab-${id}`;
-    tab.setAttribute("role", "tab");
-    tab.setAttribute("aria-controls", `podcast-list-${id}`);
-    tab.addEventListener("click", () => this.showTab(id));
+  private fillList(): void {
+    for (const chapter of this.podcast?.chapters ?? []) {
+      const row = el("button", "podcast__row");
+      row.type = "button";
+      row.append(icon("play", "icon podcast__row-marker"));
+      row.append(el("span", "podcast__row-time", formatTimestamp(chapter.startSeconds)));
+      row.append(el("span", "podcast__row-title", chapter.title));
+      row.addEventListener("click", () => this.select(chapter.id));
+      this.rows.set(chapter.id, row);
 
-    const panel = el("ul", "podcast__list");
-    panel.id = `podcast-list-${id}`;
-    panel.setAttribute("role", "tabpanel");
-    panel.setAttribute("aria-labelledby", tab.id);
-
-    return { id, tab, panel, rows: new Map() };
+      const item = el("li");
+      item.append(row);
+      this.list.append(item);
+    }
+    if (this.rows.size === 0) this.list.append(el("li", "podcast__empty", "暂无章节"));
   }
 
-  private fillLists(): void {
-    const podcast = this.podcast;
-    for (const chapter of podcast?.chapters ?? []) {
-      this.addRow("chapters", chapter.id, chapter.title, formatTimestamp(chapter.startSeconds));
-    }
-    for (const clip of podcast?.clips ?? []) {
-      this.addRow("clips", clip.id, clip.title);
-    }
-    for (const view of Object.values(this.tabs)) {
-      if (view.rows.size > 0) continue;
-      view.panel.append(el("li", "podcast__empty", TAB_EMPTY_TEXT[view.id]));
-    }
-  }
-
-  private addRow(tab: TabId, id: string, title: string, timestamp?: string): void {
-    const view = this.tabs[tab];
-    const row = el("button", "podcast__row");
-    row.type = "button";
-    row.append(icon("play", "icon podcast__row-marker"));
-    if (timestamp !== undefined) row.append(el("span", "podcast__row-time", timestamp));
-    row.append(el("span", "podcast__row-title", title));
-    row.addEventListener("click", () => this.select(tab, id));
-    view.rows.set(id, row);
-
-    const item = el("li");
-    item.append(row);
-    view.panel.append(item);
-  }
-
-  private showTab(id: TabId): void {
-    this.activeTab = id;
-    for (const view of Object.values(this.tabs)) {
-      const active = view.id === id;
-      view.tab.setAttribute("aria-selected", String(active));
-      view.tab.tabIndex = active ? 0 : -1;
-      view.panel.hidden = !active;
-    }
-  }
-
-  /** Narrow screens only; on desktop the stylesheet keeps the lists open. */
+  /** Narrow screens only; on desktop the stylesheet keeps the list open. */
   private setCollapsed(collapsed: boolean): void {
     this.browser.dataset.collapsed = String(collapsed);
     this.toggle.element.setAttribute("aria-expanded", String(!collapsed));
   }
 
-  private select(tab: TabId, id: string): void {
+  private select(chapterId: string): void {
     const podcast = this.podcast;
-    if (!podcast) return;
+    const chapter = podcast?.chapters.find((entry) => entry.id === chapterId);
+    if (!podcast || !chapter) return;
 
-    let video: VideoRef | null = null;
-    if (tab === "chapters") {
-      const chapter = podcast.chapters.find((entry) => entry.id === id);
-      if (chapter) video = chapterVideoRef(podcast, chapter);
-    } else {
-      video = podcast.clips.find((entry) => entry.id === id)?.video ?? null;
+    for (const [rowId, row] of this.rows) {
+      if (rowId === chapterId) row.setAttribute("aria-current", "true");
+      else row.removeAttribute("aria-current");
     }
-    if (!video) return;
-
-    this.selected = { tab, id };
-    for (const view of Object.values(this.tabs)) {
-      for (const [rowId, row] of view.rows) {
-        if (this.selected.tab === view.id && this.selected.id === rowId) {
-          row.setAttribute("aria-current", "true");
-        } else {
-          row.removeAttribute("aria-current");
-        }
-      }
-    }
-    this.showVideo(video, true);
+    this.showVideo(chapterVideoRef(podcast, chapter), true);
   }
 
   /** Points the single iframe at `video`. A changed URL reloads the player. */
