@@ -21,7 +21,9 @@ npm run lint
 
 ## Configure the podcast
 
-No programme is configured yet, so the left panel shows `尚未配置节目`. To set one, edit `src/podcast/podcastData.ts` and replace `null` with a `Podcast` object (the file contains a template):
+The programme is set in `src/podcast/podcastData.ts`. It currently points at `BV1fcHD6cEw3` (邵艾伦Alan, 对话孙宇晨：年轻人如何抓住AI时代的机会？) with 39 chapters and no clips. The chapter titles and times come from [wolfyxbt/justin-nut](https://github.com/wolfyxbt/justin-nut), which wrote them for the YouTube upload of the same episode; both uploads are 15750 s long, but the times were not checked one by one against the Bilibili video.
+
+To change it, edit the `Podcast` object. If `PODCAST` is `null` the panel shows `尚未配置节目`.
 
 ```ts
 export const PODCAST: Podcast | null = {
