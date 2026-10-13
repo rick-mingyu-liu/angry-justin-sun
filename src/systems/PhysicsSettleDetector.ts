@@ -43,7 +43,9 @@ export class PhysicsSettleDetector implements IPhysicsSettleDetector {
 
   private isMonitoring: boolean = false;
   private settleFrameCount: number = 0;
-  private launchTime: number = 0;
+  // Podcast Slingshot: counted in detector ticks. scene.time.now keeps running
+  // while the scene is paused, which made a long pause look like a timeout.
+  private elapsedMs: number = 0;
   private updateEvent: Phaser.Time.TimerEvent | null = null;
 
   constructor(scene: Phaser.Scene, config?: Partial<PhysicsSettleConfig>) {
@@ -60,7 +62,7 @@ export class PhysicsSettleDetector implements IPhysicsSettleDetector {
     this.callbacks = callbacks;
     this.isMonitoring = true;
     this.settleFrameCount = 0;
-    this.launchTime = this.scene.time.now;
+    this.elapsedMs = 0;
 
     this.updateEvent = this.scene.time.addEvent({
       delay: PHYSICS_SETTLE_CONFIG.checkIntervalMs,
@@ -87,7 +89,8 @@ export class PhysicsSettleDetector implements IPhysicsSettleDetector {
   private checkSettle(): void {
     if (!this.isMonitoring || !this.callbacks) return;
 
-    const elapsed = this.scene.time.now - this.launchTime;
+    this.elapsedMs += PHYSICS_SETTLE_CONFIG.checkIntervalMs;
+    const elapsed = this.elapsedMs;
 
     if (elapsed >= this.config.maxWaitTime) {
       logger.warn("[SettleDetector] Max wait time exceeded, forcing settle");

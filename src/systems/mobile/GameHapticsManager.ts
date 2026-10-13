@@ -1,4 +1,4 @@
-import { gameEvents } from "../../events/EventBus";
+import { gameEvents, SubscriptionGroup } from "../../events/EventBus";
 import { DesignTokens as T } from "../../config/DesignTokens";
 import type { IMobileSettingsProvider } from "../../interfaces/IMobileSettings";
 import { BirdType } from "../../types/BirdType";
@@ -45,14 +45,19 @@ export class GameHapticsManager {
     this.setupEventListeners();
   }
 
+  // Podcast Slingshot: upstream called off() with fresh .bind() copies, which
+  // removed nothing and leaked seven listeners per level restart.
+  private subscriptions = new SubscriptionGroup();
+
   private setupEventListeners(): void {
-    gameEvents.on("birdCollision", this.onBirdCollision.bind(this));
-    gameEvents.on("pigDestroyed", this.onPigDestroyed.bind(this));
-    gameEvents.on("explosion", this.onExplosion.bind(this));
-    gameEvents.on("birdAbilityActivated", this.onAbilityActivated.bind(this));
-    gameEvents.on("birdSplit", this.onBirdSplit.bind(this));
-    gameEvents.on("eggDrop", this.onEggDrop.bind(this));
-    gameEvents.on("ui-results", this.onGameResults.bind(this));
+    const s = this.subscriptions;
+    s.add(gameEvents.subscribe("birdCollision", this.onBirdCollision, this));
+    s.add(gameEvents.subscribe("pigDestroyed", this.onPigDestroyed, this));
+    s.add(gameEvents.subscribe("explosion", this.onExplosion, this));
+    s.add(gameEvents.subscribe("birdAbilityActivated", this.onAbilityActivated, this));
+    s.add(gameEvents.subscribe("birdSplit", this.onBirdSplit, this));
+    s.add(gameEvents.subscribe("eggDrop", this.onEggDrop, this));
+    s.add(gameEvents.subscribe("ui-results", this.onGameResults, this));
   }
 
   private isHapticEnabled(): boolean {
@@ -264,12 +269,6 @@ export class GameHapticsManager {
   }
 
   destroy(): void {
-    gameEvents.off("birdCollision", this.onBirdCollision.bind(this));
-    gameEvents.off("pigDestroyed", this.onPigDestroyed.bind(this));
-    gameEvents.off("explosion", this.onExplosion.bind(this));
-    gameEvents.off("birdAbilityActivated", this.onAbilityActivated.bind(this));
-    gameEvents.off("birdSplit", this.onBirdSplit.bind(this));
-    gameEvents.off("eggDrop", this.onEggDrop.bind(this));
-    gameEvents.off("ui-results", this.onGameResults.bind(this));
+    this.subscriptions.disposeAll();
   }
 }

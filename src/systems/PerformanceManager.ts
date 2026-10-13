@@ -67,7 +67,13 @@ export class PerformanceManager {
       return "auto";
     }
 
-    const storedMode = window.localStorage.getItem(PerformanceManager.STORAGE_KEY);
+    // Podcast Slingshot: storage access can throw (blocked cookies, private mode).
+    let storedMode: string | null = null;
+    try {
+      storedMode = window.localStorage.getItem(PerformanceManager.STORAGE_KEY);
+    } catch {
+      storedMode = null;
+    }
     if (
       storedMode === "auto" ||
       storedMode === "high" ||
@@ -88,7 +94,11 @@ export class PerformanceManager {
       return;
     }
 
-    window.localStorage.setItem(PerformanceManager.STORAGE_KEY, mode);
+    try {
+      window.localStorage.setItem(PerformanceManager.STORAGE_KEY, mode);
+    } catch {
+      // Keep the in-memory mode only.
+    }
   }
 
   public static getQualityMultiplier(scene: Phaser.Scene): number {
