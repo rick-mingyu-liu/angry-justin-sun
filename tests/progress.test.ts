@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TOTAL_LEVELS } from "../src/game/levelCatalog";
 import {
   PROGRESS_STORAGE_KEY,
   canEnterLevel,
@@ -45,10 +46,11 @@ describe("unlock rules", () => {
   });
 
   it("keeps highestUnlockedLevel at the cap after completing the last level", () => {
-    let p = completeLevel(defaultProgress(), 1, 1, 1);
-    p = completeLevel(p, 2, 1, 1);
-    p = completeLevel(p, 3, 1, 1);
-    expect(p.highestUnlockedLevel).toBe(3);
+    let p = defaultProgress();
+    for (let level = 1; level <= TOTAL_LEVELS; level++) {
+      p = completeLevel(p, level, 1, 1);
+    }
+    expect(p.highestUnlockedLevel).toBe(TOTAL_LEVELS);
   });
 
   it("never lowers highestUnlockedLevel when replaying", () => {
@@ -122,12 +124,12 @@ describe("parseProgress", () => {
   it("falls back field by field", () => {
     const p = parseProgress({
       version: 1,
-      highestUnlockedLevel: 9,
+      highestUnlockedLevel: TOTAL_LEVELS + 1,
       levels: {
         "1": { bestScore: 10, stars: 4 },
         "2": { bestScore: -1, stars: 1 },
         "3": { bestScore: 5, stars: 1.5 },
-        "7": { bestScore: 5, stars: 1 },
+        [String(TOTAL_LEVELS + 1)]: { bestScore: 5, stars: 1 },
         x: { bestScore: 5, stars: 1 },
       },
       unlockedCharacters: ["ghost", "muscle", "muscle"],

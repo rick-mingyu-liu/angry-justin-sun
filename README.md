@@ -48,7 +48,7 @@ How the player behaves, by design:
 
 ## What is in the game
 
-- Three levels (`src/game/levels.ts`, titles in `src/game/levelCatalog.ts`): a tutorial, a deck on thin legs that collapses, and a short log-cabin challenge. A level unlocks when the previous one is cleared.
+- Eight levels (`src/game/levels.ts`, titles and hints in `src/game/levelCatalog.ts`): a tutorial, a deck on thin legs that collapses, a log cabin, a glass tower, a TNT table, two towers, a stone fort and a three-part finale. A level unlocks when the previous one is cleared. To add one, append a blueprint to `levels.ts` and an entry to `levelCatalog.ts`; the level selector and progress rules follow the catalog.
 - Two appearances (`src/game/characters.ts`): 坚果孙哥 and 肌肉孙哥. The second unlocks on entering level 3. They share one collision circle and the same launch physics; only the sprite differs. Switching is possible while a walnut sits in the slingshot, applies to it and the waiting ones, and costs no shot.
 - Sound effects start muted (`游戏音效：关`) and play at a low volume when enabled. There is no background music. The toggle does not touch the podcast.
 - The game pauses when the tab goes to the background and stays paused until `继续` is pressed.

@@ -422,7 +422,7 @@ export class GameHost implements SfxControl {
 
     const nextLevel = result.levelId + 1;
     const hasNext = result.levelId < TOTAL_LEVELS;
-    const card = this.overlayCard("过关！", hasNext ? undefined : "三关全部通关");
+    const card = this.overlayCard("过关！", hasNext ? undefined : "全部关卡通关");
 
     const stars = el("p", "overlay-card__stars");
     const earned = Math.max(0, Math.min(MAX_STARS, Math.round(result.stars)));

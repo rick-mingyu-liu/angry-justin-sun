@@ -615,8 +615,11 @@ noscript {
 }
 
 .levels {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  justify-items: center;
+  width: 100%;
+  max-width: 420px;
 }
 
 .levels__item {
@@ -624,19 +627,12 @@ noscript {
   align-items: center;
 }
 
-.levels__item + .levels__item::before {
-  content: "";
-  width: 14px;
-  margin: 0 4px;
-  border-top: 3px dotted var(--line-strong);
-}
-
 .levels__btn {
   position: relative;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -1194,7 +1190,7 @@ noscript {
   }
 
   .toolbar__title {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     font-size: 21px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1202,17 +1198,69 @@ noscript {
   }
 
   .toolbar .levels {
-    flex: 1 1 0;
+    display: flex;
+    flex: none;
+    width: auto;
+    max-width: none;
+  }
+
+  .levels__item + .levels__item::before {
+    content: "";
+    width: 8px;
+    margin: 0 3px;
+    border-top: 3px dotted var(--line-strong);
   }
 
   .toolbar__actions {
-    flex: 1 1 0;
+    flex: none;
     justify-content: flex-end;
   }
 
   .levels__btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+
+  /* Narrow game column: drop the connectors and button text so the level
+     title and all eight level buttons still fit on one line. */
+  .game__panel {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 780px) {
+    .toolbar {
+      gap: 10px;
+    }
+
+    .toolbar__title {
+      font-size: 17px;
+    }
+
+    .levels__item + .levels__item::before {
+      width: 0;
+      margin: 0 2px;
+      border: 0;
+    }
+
+    .levels__btn {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+    }
+
+    .toolbar__actions .btn {
+      padding: 0 10px;
+    }
+
+    .toolbar__actions .btn__label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 
   .hintbar {
