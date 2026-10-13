@@ -29,7 +29,7 @@ export const CHARACTERS: readonly CharacterDefinition[] = [
   },
   {
     id: "muscle",
-    name: "肌肉孙哥",
+    name: "薄肌孙哥",
     textureKey: "character-muscle",
     assetPath: "characters/nut-muscle.png",
     unlockLevel: 3,
