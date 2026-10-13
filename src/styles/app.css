@@ -1077,6 +1077,108 @@ noscript {
   font-size: 16px;
 }
 
+/* ---- graduation certificate ---- */
+
+.graduation {
+  width: min(900px, calc(100vw - 24px));
+}
+
+.graduation[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.graduation__body {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  padding: 4px 20px 20px;
+  overflow-y: auto;
+}
+
+.graduation__greeting {
+  font-size: 18px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.graduation__field {
+  display: grid;
+  gap: 4px;
+}
+
+.graduation__label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.graduation__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.graduation__hint,
+.graduation__manual-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* The preview is the export canvas itself, scaled down. */
+.graduation__canvas,
+.graduation__manual-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  border-radius: 8px;
+  background: #fff8e8;
+  box-shadow: 0 2px 12px rgba(19, 29, 54, 0.18);
+}
+
+.graduation__status {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.graduation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.graduation__manual {
+  display: grid;
+  gap: 8px;
+}
+
+.graduation-entry {
+  margin-left: auto;
+  border-color: var(--amber);
+  color: #8a5300;
+}
+
+.graduation.is-celebrating .graduation__canvas {
+  animation: graduation-reveal 520ms ease-out both;
+}
+
+@keyframes graduation-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.94) rotate(-1deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (min-width: 900px) {
   :root {
     --header-h: 56px;

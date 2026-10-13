@@ -44,3 +44,21 @@ for (const { source, output, contentSize } of characters) {
     `${output}: visible ${trimmed.info.width}x${trimmed.info.height} -> ${resized.info.width}x${resized.info.height} in ${CANVAS}x${CANVAS}`
   );
 }
+
+// Larger copies for the graduation certificate (1800x1200 canvas). Trimmed to
+// the visible pixels, no padding: the certificate layout places them itself.
+const certificateCharacters = [
+  { source: "justin-nut-transparent.png", output: "nut-standard.png", height: 560 },
+  { source: "justin-nut-upgraded-transparent.png", output: "nut-muscle.png", height: 760 },
+];
+
+for (const { source, output, height } of certificateCharacters) {
+  const input = path.join(root, "assets/characters-source", source);
+  const trimmed = await sharp(input).trim({ threshold: 8 }).toBuffer();
+  const target = path.join(root, "game-assets/certificate", output);
+  const info = await sharp(trimmed)
+    .resize({ height, kernel: "lanczos3" })
+    .png({ compressionLevel: 9 })
+    .toFile(target);
+  console.log(`certificate/${output}: ${info.width}x${info.height}`);
+}

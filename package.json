@@ -11,7 +11,8 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\"",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:browser:certificate": "node scripts/browser-checks/certificate.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -25,6 +26,7 @@
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
+    "playwright-core": "^1.64.0",
     "prettier": "^3.8.1",
     "sharp": "^0.35.5",
     "typescript": "~5.7.2",

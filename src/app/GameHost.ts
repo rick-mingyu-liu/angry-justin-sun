@@ -8,16 +8,25 @@ import { createGameAdapter } from "../game/gameAdapter";
 import type { GameAdapter } from "../game/gameAdapterTypes";
 import { getLevelEntry, LEVEL_CATALOG, TOTAL_LEVELS } from "../game/levelCatalog";
 import {
+  acknowledgeGraduationCelebration,
   canEnterLevel,
   completeLevel,
   createProgressStore,
   enterLevel,
   isCharacterUnlocked,
+  isGraduationEligible,
+  recognizeGraduation,
   selectCharacter,
+  setGraduationNickname,
   setSfxEnabled,
+  type Progress,
   type ProgressStore,
 } from "../storage/progress";
 import { button, el, icon } from "./dom";
+import { GraduationDialog } from "./GraduationDialog";
+
+/** Pause between the victory card appearing and the one-time graduation celebration. */
+const GRADUATION_CELEBRATION_DELAY_MS = 1400;
 
 /** What the header sound button needs from the game side. */
 export interface SfxControl {
@@ -66,6 +75,15 @@ export class GameHost implements SfxControl {
   private readonly levelMenuGrid = el("ol", "level-menu__grid");
   /** True when opening the level page is what paused the game. */
   private menuPausedGame = false;
+  private readonly certificateButton = button("btn graduation-entry", "毕业证书", "star");
+  private readonly graduation = new GraduationDialog({
+    getProgress: () => this.store.get(),
+    saveNickname: (raw) => this.store.update((progress) => setGraduationNickname(progress, raw)),
+    onClose: () => this.handleGraduationClosed(),
+  });
+  /** True when opening the certificate is what paused the game. */
+  private certificatePausedGame = false;
+  private celebrationTimer: number | null = null;
   private readonly pauseButton = button("btn", "暂停", "pause");
   private readonly restartButton = button("btn", "重开", "restart");
   private readonly mount = el("div", "stage__mount");
@@ -79,6 +97,8 @@ export class GameHost implements SfxControl {
   constructor() {
     this.levelId = this.store.get().highestUnlockedLevel;
     this.store.update((progress) => enterLevel(progress, this.levelId));
+    // A save from before this feature that already has every level cleared.
+    this.store.update((progress) => recognizeGraduation(progress, new Date()));
     this.element = this.build();
     this.renderAll();
   }
@@ -107,6 +127,7 @@ export class GameHost implements SfxControl {
 
   destroy(): void {
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+    this.cancelCelebration();
     for (const unsubscribe of this.unsubscribers.splice(0)) unsubscribe();
     this.adapter?.destroy();
     this.adapter = null;
@@ -133,7 +154,9 @@ export class GameHost implements SfxControl {
         this.paused = adapter.isPaused();
         this.projectileReady = adapter.isProjectileReady();
         this.store.update((progress) => enterLevel(progress, levelId));
+        this.cancelCelebration();
         this.renderAll();
+        this.scheduleCelebrationIfDue();
       }),
       adapter.on("shotCountChanged", ({ remaining }) => {
         this.shotsRemaining = remaining;
@@ -146,12 +169,14 @@ export class GameHost implements SfxControl {
       }),
       adapter.on("levelCompleted", ({ levelId, score, stars }) => {
         const progress = this.store.update((current) =>
-          completeLevel(current, levelId, score, stars)
+          recognizeGraduation(completeLevel(current, levelId, score, stars), new Date())
         );
         const best = progress.levels[levelId]?.bestScore ?? score;
         this.score = score;
         this.result = { kind: "completed", levelId, score, stars, best };
         this.renderAll();
+        // The victory card shows first; the celebration follows it once.
+        this.scheduleCelebrationIfDue();
       }),
       adapter.on("levelFailed", ({ score }) => {
         this.score = score;
@@ -211,7 +236,7 @@ export class GameHost implements SfxControl {
     panel.setAttribute("aria-label", "弹弓游戏");
     panel.append(this.buildToolbar(), this.buildStage(), this.buildHintBar());
 
-    root.append(panel, this.buildCharacters(), this.buildLevelMenu());
+    root.append(panel, this.buildCharacters(), this.buildLevelMenu(), this.graduation.element);
     return root;
   }
 
@@ -247,7 +272,8 @@ export class GameHost implements SfxControl {
     close.setAttribute("aria-label", "返回游戏");
     close.append(icon("close"));
     form.append(close);
-    head.append(heading, form);
+    this.certificateButton.element.addEventListener("click", () => this.openCertificateFromMenu());
+    head.append(heading, this.certificateButton.element, form);
 
     dialog.append(head, this.levelMenuGrid);
     dialog.addEventListener("click", (event) => {
@@ -270,6 +296,61 @@ export class GameHost implements SfxControl {
       this.menuPausedGame = adapter.isPaused();
     }
     this.levelMenu.showModal();
+  }
+
+  // ------------------------------------------------------------- graduation
+
+  private hasGraduated(progress: Progress = this.store.get()): boolean {
+    return progress.graduation !== undefined && isGraduationEligible(progress);
+  }
+
+  /** Shows the celebration once, shortly after the game (or the victory card) is on screen. */
+  private scheduleCelebrationIfDue(): void {
+    const progress = this.store.get();
+    if (!this.started || !this.hasGraduated(progress) || progress.graduation?.celebrationSeen) {
+      return;
+    }
+    if (this.celebrationTimer !== null || this.graduation.isOpen) return;
+    this.celebrationTimer = window.setTimeout(() => {
+      this.celebrationTimer = null;
+      // Never on top of another modal; the permanent entry stays available.
+      if (this.levelMenu.open || document.querySelector("dialog[open]")) return;
+      this.openCertificate(true);
+    }, GRADUATION_CELEBRATION_DELAY_MS);
+  }
+
+  private cancelCelebration(): void {
+    if (this.celebrationTimer === null) return;
+    window.clearTimeout(this.celebrationTimer);
+    this.celebrationTimer = null;
+  }
+
+  private openCertificate(celebrate: boolean): void {
+    const adapter = this.adapter;
+    if (!adapter || !this.hasGraduated() || this.graduation.isOpen) return;
+    this.cancelCelebration();
+    // Pause only a game that is actually running; a manual or background
+    // pause, or a finished level, is left exactly as it was.
+    if (!adapter.isPaused() && !this.result && this.started) {
+      adapter.pause();
+      this.certificatePausedGame = adapter.isPaused();
+    }
+    this.graduation.open(celebrate);
+  }
+
+  private openCertificateFromMenu(): void {
+    // Hand the menu's pause over to the certificate instead of resuming in between.
+    const inheritedPause = this.menuPausedGame;
+    this.menuPausedGame = false;
+    this.levelMenu.close();
+    this.openCertificate(false);
+    this.certificatePausedGame = this.certificatePausedGame || inheritedPause;
+  }
+
+  private handleGraduationClosed(): void {
+    this.store.update(acknowledgeGraduationCelebration);
+    if (this.certificatePausedGame) this.adapter?.resume();
+    this.certificatePausedGame = false;
   }
 
   private pickLevel(levelId: number): void {
@@ -399,6 +480,7 @@ export class GameHost implements SfxControl {
 
     this.levelMenuButton.label.textContent = `选关 ${this.levelId}/${TOTAL_LEVELS}`;
     this.levelMenuButton.element.disabled = !this.started;
+    this.certificateButton.element.hidden = !this.hasGraduated();
     if (this.levelMenu.open) this.renderLevelMenu();
 
     this.pauseButton.label.textContent = this.paused ? "继续" : "暂停";
@@ -510,15 +592,21 @@ export class GameHost implements SfxControl {
         ? this.overlayActions(
             ["下一关", () => this.adapter?.loadLevel(nextLevel)],
             replay,
-            this.levelMenuAction()
+            this.levelMenuAction(),
+            ...this.certificateActions()
           )
-        : this.overlayActions(replay, this.levelMenuAction())
+        : this.overlayActions(replay, this.levelMenuAction(), ...this.certificateActions())
     );
     return card;
   }
 
   private levelMenuAction(): [string, () => void] {
     return ["选关", () => this.openLevelMenu()];
+  }
+
+  /** Extra result-card action once the player has graduated. */
+  private certificateActions(): Array<[string, () => void]> {
+    return this.hasGraduated() ? [["毕业证书", () => this.openCertificate(false)]] : [];
   }
 
   private overlayCard(title: string, detail?: string): HTMLElement {

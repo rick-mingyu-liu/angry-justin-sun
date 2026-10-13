@@ -160,6 +160,84 @@ describe("parseProgress", () => {
   });
 });
 
+describe("parseProgress forward compatibility", () => {
+  const record = {
+    earnedAt: 1900000000000,
+    displayDate: "2030.03.17",
+    nickname: "阿伟",
+    celebrationSeen: true,
+  };
+
+  it("keeps unknown top-level fields through parse, update and save", () => {
+    const storage = fakeStorage(
+      JSON.stringify({
+        version: 1,
+        highestUnlockedLevel: 2,
+        levels: { "1": { bestScore: 10, stars: 2 } },
+        futureField: { nested: [1, 2, 3] },
+        futureFlag: true,
+        sfxEnabled: "yes",
+      })
+    );
+    const store = createProgressStore(storage);
+    store.update((p) => completeLevel(p, 2, 50, 3));
+    store.update((p) => setSfxEnabled(enterLevel(p, 3), true));
+    const saved = JSON.parse(storage.data.get(PROGRESS_STORAGE_KEY) ?? "");
+    expect(saved.futureField).toEqual({ nested: [1, 2, 3] });
+    expect(saved.futureFlag).toBe(true);
+    expect(saved.sfxEnabled).toBe(true);
+    expect(saved.levels).toEqual({
+      "1": { bestScore: 10, stars: 2 },
+      "2": { bestScore: 50, stars: 3 },
+    });
+    expect(createProgressStore(storage).get()).toMatchObject({ futureFlag: true });
+  });
+
+  it("does not carry fields over from the wrong version", () => {
+    expect(parseProgress({ version: 2, futureFlag: true })).toEqual(defaultProgress());
+  });
+
+  it("keeps a valid graduation record even when the save is not eligible", () => {
+    const p = parseProgress({ version: 1, levels: {}, graduation: record });
+    expect(p.graduation).toEqual(record);
+  });
+
+  it("repairs the soft fields of a graduation record", () => {
+    const p = parseProgress({
+      version: 1,
+      graduation: { ...record, nickname: ["阿伟"], celebrationSeen: "yes", extra: 1 },
+    });
+    expect(p.graduation).toEqual({ ...record, nickname: "", celebrationSeen: false });
+    const padded = parseProgress({ version: 1, graduation: { ...record, nickname: " 阿\n伟 " } });
+    expect(padded.graduation?.nickname).toBe("阿 伟");
+  });
+
+  it.each([
+    null,
+    "2030.03.17",
+    [],
+    {},
+    { ...record, earnedAt: "1900000000000" },
+    { ...record, earnedAt: 0 },
+    { ...record, earnedAt: -5 },
+    { ...record, earnedAt: null },
+    { ...record, displayDate: "2030-03-17" },
+    { ...record, displayDate: "2030.3.17" },
+    { ...record, displayDate: "2030.03.17 " },
+    { ...record, displayDate: 20300317 },
+  ])("drops a corrupt graduation record %j without losing levels", (graduation) => {
+    const p = parseProgress({
+      version: 1,
+      highestUnlockedLevel: 2,
+      levels: { "1": { bestScore: 10, stars: 2 } },
+      graduation,
+    });
+    expect("graduation" in p).toBe(false);
+    expect(p.levels).toEqual({ 1: { bestScore: 10, stars: 2 } });
+    expect(p.highestUnlockedLevel).toBe(2);
+  });
+});
+
 describe("createProgressStore", () => {
   it("round trips through working storage", () => {
     const storage = fakeStorage();

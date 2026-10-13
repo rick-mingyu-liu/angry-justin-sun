@@ -45,6 +45,9 @@ export const LEVEL_CATALOG: readonly LevelCatalogEntry[] = [
 
 export const TOTAL_LEVELS = LEVEL_CATALOG.length;
 
+/** The game awards at most three stars per level. */
+export const MAX_STARS_PER_LEVEL = 3;
+
 export function isLevelId(value: unknown): value is number {
   return typeof value === "number" && LEVEL_CATALOG.some((level) => level.id === value);
 }
