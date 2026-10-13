@@ -5,6 +5,11 @@ export default defineConfig({
 
   publicDir: "game-assets",
 
+  // Vercel sets VERCEL=1 while building; analytics is only wired up there.
+  define: {
+    __VERCEL_BUILD__: JSON.stringify(process.env.VERCEL === "1"),
+  },
+
   build: {
     outDir: "dist",
     emptyOutDir: true,
