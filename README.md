@@ -1,5 +1,7 @@
 <div align="center">
 
+**简体中文** | [English](README.en.md)
+
 # 愤怒的孙哥 · Angry Justin Sun
 
 **左边听孙哥，右边发射孙哥。**
