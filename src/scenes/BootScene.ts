@@ -10,13 +10,7 @@ import {
 } from "../config/BootSceneConfig";
 import { CHARACTERS } from "../game/characters";
 import { HOST_LEVEL_REGISTRY_KEY } from "../game/hostKeys";
-
-const TIPS = [
-  "拖动坚果瞄准，松开发射",
-  "玻璃最脆，木头次之，石头最硬",
-  "打掉支撑，让上面的塌下来",
-  "剩余的发数越多，得分越高",
-];
+import { m } from "../i18n/messages";
 
 const PROGRESS_WIDTH = BOOT_PROGRESS_BAR_CONFIG.width;
 const PROGRESS_HEIGHT = BOOT_PROGRESS_BAR_CONFIG.height;
@@ -73,7 +67,7 @@ export class BootScene extends Phaser.Scene {
     this.progressBarFill = this.add.graphics();
     this.drawProgressFill(0);
 
-    this.loadingText = this.add.text(CENTER_X, CENTER_Y + C.loadingTextY, "加载中…", {
+    this.loadingText = this.add.text(CENTER_X, CENTER_Y + C.loadingTextY, m().bootLoading, {
       fontFamily: T.fonts.family,
       fontSize: `${T.fonts.sizes.button}px`,
       color: T.colors.neutral.white,
@@ -155,7 +149,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   private updateTip(): void {
-    const tip = TIPS[this.currentTipIndex];
+    const tips = m().bootTips;
+    const tip = tips[this.currentTipIndex % tips.length];
 
     this.tweens.add({
       targets: this.tipText,
@@ -173,11 +168,11 @@ export class BootScene extends Phaser.Scene {
       },
     });
 
-    this.currentTipIndex = (this.currentTipIndex + 1) % TIPS.length;
+    this.currentTipIndex = (this.currentTipIndex + 1) % tips.length;
   }
 
   private onLoadComplete(): void {
-    this.loadingText.setText("准备好了");
+    this.loadingText.setText(m().bootReady);
 
     FragmentWorkerClient.getInstance();
 

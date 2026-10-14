@@ -10,10 +10,12 @@ import {
   type CharacterId,
 } from "../game/characters";
 import { LEVEL_CATALOG, MAX_STARS_PER_LEVEL, TOTAL_LEVELS, isLevelId } from "../game/levelCatalog";
+import { getLanguage, type Language, type Localized } from "../i18n/language";
 
 export const PROGRESS_STORAGE_KEY = "podcast-slingshot:progress:v1";
 
-export const DEFAULT_GRADUATE_NAME = "薄肌同学";
+/** Printed when no nickname was entered; follows the interface language at display time. */
+export const DEFAULT_GRADUATE_NAME: Localized = { zh: "薄肌同学", en: "Lean Muscle Graduate" };
 export const NICKNAME_MAX_GRAPHEMES = 16;
 /** Upper bound on the stored nickname in UTF-16 code units (16 long emoji sequences still fit). */
 export const NICKNAME_MAX_CODE_UNITS = 192;
@@ -109,9 +111,9 @@ export function normalizeNickname(raw: unknown): string {
   return name.trimEnd();
 }
 
-/** The name to print. A custom name replaces the default entirely. */
-export function displayNickname(nickname: string): string {
-  return normalizeNickname(nickname) || DEFAULT_GRADUATE_NAME;
+/** The name to print. A custom name replaces the default entirely, in either language. */
+export function displayNickname(nickname: string, language: Language = getLanguage()): string {
+  return normalizeNickname(nickname) || DEFAULT_GRADUATE_NAME[language];
 }
 
 /** "YYYY.MM.DD" from the Date's local calendar fields, zero padded. */

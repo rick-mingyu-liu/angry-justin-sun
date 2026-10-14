@@ -18,6 +18,8 @@ const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "output");
 fs.mkdirSync(OUT, { recursive: true });
 
 const KEY = "podcast-slingshot:progress:v1";
+// The default language follows the browser; the checks pin it so the text they expect is stable.
+const LANGUAGE_KEY = "angry-podcast:language";
 const TOTAL = 30;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let failures = 0;
@@ -54,19 +56,26 @@ const browser = await chromium.launch({
   args: ["--enable-unsafe-swiftshader"],
 });
 
-async function openPage(save, viewport = { width: 1440, height: 900 }, waitUntilReady = true) {
+async function openPage(
+  save,
+  viewport = { width: 1440, height: 900 },
+  waitUntilReady = true,
+  language = "zh"
+) {
   const context = await browser.newContext({ viewport, acceptDownloads: true });
-  await context.route(/player\.bilibili\.com/, (route) =>
-    route.fulfill({ contentType: "text/html", body: "<html><body>stub</body></html>" })
+  await context.route(
+    /player\.bilibili\.com|ytimg\.com|youtube\.com|youtube-nocookie\.com/,
+    (route) => route.fulfill({ contentType: "text/html", body: "<html><body>stub</body></html>" })
   );
   // Seed once per context: reloads must see what the app itself saved.
   await context.addInitScript(
-    ([key, value]) => {
+    ([key, value, languageKey, languageValue]) => {
       if (sessionStorage.getItem("seeded")) return;
       sessionStorage.setItem("seeded", "1");
+      localStorage.setItem(languageKey, languageValue);
       if (value) localStorage.setItem(key, value);
     },
-    [KEY, save ? JSON.stringify(save) : ""]
+    [KEY, save ? JSON.stringify(save) : "", LANGUAGE_KEY, language]
   );
   const page = await context.newPage();
   const errors = [];
@@ -541,11 +550,66 @@ const overlay = (page) => page.locator(".stage__overlay").innerText();
   await context.close();
 }
 
-// ---------------------------------------------------------------- 5. blocked storage
+// ---------------------------------------------------------------- 5. English certificate
+{
+  const { context, page, errors } = await openPage(
+    fixture(range(1, 30), {
+      stars: 3,
+      graduation: {
+        earnedAt: 1790000000000,
+        displayDate: "2026.09.21",
+        nickname: "",
+        celebrationSeen: true,
+      },
+    }),
+    undefined,
+    true,
+    "en"
+  );
+  await page
+    .getByRole("button", { name: /Levels/ })
+    .first()
+    .click();
+  await sleep(300);
+  await page.locator(".graduation-entry").click();
+  await page.waitForSelector("dialog.graduation[open]", { timeout: 8000 });
+  await sleep(900);
+  check(
+    "English: heading, greeting and default name",
+    (await page.locator("#graduation-heading").innerText()) === "Lean Muscle Diploma" &&
+      (await page.locator(".graduation__greeting").innerText()) ===
+        "Congratulations, Lean Muscle Graduate." &&
+      (await page.locator("#graduation-nickname").getAttribute("placeholder")) ===
+        "Lean Muscle Graduate"
+  );
+  const label = await page.locator(".graduation__canvas").getAttribute("aria-label");
+  check(
+    "English: preview describes the English certificate",
+    label.includes("Lean Muscle Graduate") &&
+      label.includes(`Total stars ${TOTAL * 3} / ${TOTAL * 3}`) &&
+      label.includes("Graduated 2026.09.21"),
+    label
+  );
+  const [download] = await Promise.all([
+    page.waitForEvent("download", { timeout: 20000 }),
+    page.getByRole("button", { name: "Save image" }).click(),
+  ]);
+  await download.saveAs(path.join(OUT, "certificate-en.png"));
+  check(
+    "English: exported file name",
+    download.suggestedFilename() === "lean-muscle-diploma.png",
+    download.suggestedFilename()
+  );
+  check("no page errors (English)", errors.length === 0, JSON.stringify(errors));
+  await context.close();
+}
+
+// ---------------------------------------------------------------- 6. blocked storage
 {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  await context.route(/player\.bilibili\.com/, (route) =>
-    route.fulfill({ contentType: "text/html", body: "<html></html>" })
+  await context.route(
+    /player\.bilibili\.com|ytimg\.com|youtube\.com|youtube-nocookie\.com/,
+    (route) => route.fulfill({ contentType: "text/html", body: "<html></html>" })
   );
   await context.addInitScript(() => {
     Object.defineProperty(window, "localStorage", {

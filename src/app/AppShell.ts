@@ -4,40 +4,41 @@
  */
 
 import { getCharacter } from "../game/characters";
+import {
+  applyDocumentLanguage,
+  getLanguage,
+  onLanguageChange,
+  setLanguage,
+} from "../i18n/language";
+import { m } from "../i18n/messages";
 import { PodcastPanel } from "../podcast/PodcastPanel";
 import { buildCreditsDialog, buildFooter } from "./credits";
 import { button, el, icon } from "./dom";
 import { GameHost, type SfxControl } from "./GameHost";
-
-const HELP_STEPS: readonly string[] = [
-  "在播放器里点播放，或直接点左边的章节，节目会从那里开始播。",
-  "按住弹弓上的坚果向后拖动瞄准，松开即可发射。",
-  "打掉所有目标即可过关；发数用完还没打完，就重开再来。",
-  "点「选关」可以重玩已解锁的关卡，星星和最高分都记在那里。",
-  "坚果落地、下一发就位后，才能在下方切换角色外观。",
-  "切换章节只会更新播放器；暂停、重开和换关只影响游戏。",
-  "页面切到后台时游戏会自动暂停，回来后请点「继续」。",
-  "游戏音效默认关闭，可在右上角单独打开，不影响节目声音。",
-];
 
 function buildHelpDialog(): HTMLDialogElement {
   const dialog = el("dialog", "help");
   dialog.setAttribute("aria-labelledby", "help-heading");
 
   const head = el("div", "help__head");
-  const heading = el("h2", "help__heading", "怎么玩");
+  const heading = el("h2", "help__heading");
   heading.id = "help-heading";
   const form = el("form");
   form.method = "dialog";
   const close = el("button", "btn btn--icon");
   close.type = "submit";
-  close.setAttribute("aria-label", "关闭帮助");
   close.append(icon("close"));
   form.append(close);
   head.append(heading, form);
 
   const steps = el("ol", "help__steps");
-  for (const step of HELP_STEPS) steps.append(el("li", undefined, step));
+  const render = () => {
+    heading.textContent = m().helpHeading;
+    close.setAttribute("aria-label", m().helpClose);
+    steps.replaceChildren(...m().helpSteps.map((step) => el("li", undefined, step)));
+  };
+  render();
+  onLanguageChange(render);
 
   dialog.append(head, steps);
   // Clicking the backdrop (the dialog element itself, outside its content) closes it.
@@ -48,10 +49,13 @@ function buildHelpDialog(): HTMLDialogElement {
 }
 
 function buildSoundButton(sfx: SfxControl): HTMLButtonElement {
-  const sound = button("header__btn", "");
+  const sound = button("header__btn header__btn--sound", "");
   const render = () => {
     const enabled = sfx.isSfxEnabled();
-    sound.label.textContent = enabled ? "游戏音效：开" : "游戏音效：关";
+    const label = enabled ? m().sfxOn : m().sfxOff;
+    sound.label.textContent = label;
+    // The text label is hidden on narrow screens; the name stays on the button.
+    sound.element.setAttribute("aria-label", label);
     sound.setIcon(enabled ? "soundOn" : "soundOff");
     sound.element.setAttribute("aria-pressed", String(enabled));
   };
@@ -60,7 +64,25 @@ function buildSoundButton(sfx: SfxControl): HTMLButtonElement {
     render();
   });
   render();
+  onLanguageChange(render);
   return sound.element;
+}
+
+function buildLanguageButton(): HTMLButtonElement {
+  const toggle = button("header__btn header__btn--language", "");
+  const render = () => {
+    const target = getLanguage() === "zh" ? "en" : "zh";
+    toggle.label.textContent = m().languageToggle;
+    // The whole button speaks the target language; its name starts with the visible text.
+    toggle.element.lang = target === "zh" ? "zh-CN" : "en";
+    toggle.element.setAttribute("aria-label", m().languageToggleLabel);
+  };
+  toggle.element.addEventListener("click", () => {
+    setLanguage(getLanguage() === "zh" ? "en" : "zh");
+  });
+  render();
+  onLanguageChange(render);
+  return toggle.element;
 }
 
 function buildHeader(sfx: SfxControl, help: HTMLDialogElement): HTMLElement {
@@ -72,15 +94,28 @@ function buildHeader(sfx: SfxControl, help: HTMLDialogElement): HTMLElement {
   logo.alt = "";
   logo.width = 256;
   logo.height = 256;
-  brand.append(logo, el("span", undefined, "愤怒的孙哥"));
+  const brandText = el("span");
+  brand.append(logo, brandText);
 
   const actions = el("div", "header__actions");
-  const helpButton = button("header__btn", "帮助", "help");
+  const helpButton = button("header__btn header__btn--help", "", "help");
   helpButton.element.setAttribute("aria-haspopup", "dialog");
   helpButton.element.addEventListener("click", () => {
     if (!help.open) help.showModal();
   });
-  actions.append(buildSoundButton(sfx), el("span", "header__divider"), helpButton.element);
+  const render = () => {
+    brandText.textContent = m().brand;
+    helpButton.label.textContent = m().help;
+  };
+  render();
+  onLanguageChange(render);
+  actions.append(
+    buildLanguageButton(),
+    el("span", "header__divider"),
+    buildSoundButton(sfx),
+    el("span", "header__divider"),
+    helpButton.element
+  );
 
   header.append(brand, actions);
   return header;
@@ -92,6 +127,13 @@ export interface AppShell {
 
 /** Builds the whole page inside `root`. Call once. */
 export function mountAppShell(root: HTMLElement): AppShell {
+  applyDocumentLanguage();
+  const renderTitle = () => {
+    document.title = m().documentTitle;
+  };
+  renderTitle();
+  onLanguageChange(renderTitle);
+
   const podcast = new PodcastPanel();
   const game = new GameHost();
   const help = buildHelpDialog();

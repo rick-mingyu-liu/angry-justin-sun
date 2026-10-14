@@ -5,7 +5,6 @@
 # Source, licence and checksums are recorded in third_party/FONTS.md.
 import argparse
 import hashlib
-import string
 import sys
 from pathlib import Path
 
@@ -15,11 +14,12 @@ from fontTools.varLib import instancer
 
 SOURCE_SHA256 = "050080d9255a86808f2945bffac582b31ef32bc36411ce29563b4961670c66f9"
 
-# The fixed copy drawn on the certificate. Player nicknames are not covered and
-# fall back to the system serif.
+# The fixed copy drawn on the certificate, in Chinese and English. Player
+# nicknames are covered only when they use these characters or printable ASCII;
+# any other nickname is drawn in the system serif.
 COPY = """
 刘瑞克 · 薄肌学院
-LIU RUIKE · BOJI ACADEMY
+LIU RUIKE · LEAN MUSCLE ACADEMY
 薄肌毕业证书
 CERTIFICATE OF COMPLETION
 薄肌同学
@@ -32,8 +32,22 @@ CERTIFICATE OF COMPLETION
 优秀毕业生
 本证书证明弹弓水平，腹肌请另行修炼。
 恭喜毕业
+Liu Ruike · Lean Muscle Academy
+Lean Muscle Diploma
+Lean Muscle Graduate
+Has cleared all 30 levels
+From today on, you may launch Brother Sun on your own.
+Cleared 30 / 30
+Total stars 72 / 90
+Graduated 2026.10.13
+Approved to Graduate
+Honours Graduate
+This certifies slingshot skill only. Abs sold separately.
 """
-EXTRA = string.digits + string.ascii_letters + " ./·，。：:-—()（）　"
+# All of printable ASCII (U+0020 to U+007E), so Latin nicknames use the same face,
+# plus the punctuation the copy uses and the quotes and ellipsis a name may need.
+PRINTABLE_ASCII = "".join(chr(c) for c in range(0x20, 0x7F))
+EXTRA = PRINTABLE_ASCII + "·—‘’“”…，。：（）　"
 CHARS = sorted({c for c in COPY + EXTRA if c != "\n"})
 
 # fontTools' default features plus the ones that space CJK punctuation.

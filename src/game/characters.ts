@@ -6,11 +6,13 @@
  * defines the collision shape.
  */
 
+import type { Localized } from "../i18n/language";
+
 export type CharacterId = "standard" | "muscle";
 
 export interface CharacterDefinition {
   id: CharacterId;
-  name: string;
+  name: Localized;
   /** Phaser texture key, loaded in BootScene. */
   textureKey: string;
   /** Path relative to the Vite public dir (game-assets/). */
@@ -22,14 +24,14 @@ export interface CharacterDefinition {
 export const CHARACTERS: readonly CharacterDefinition[] = [
   {
     id: "standard",
-    name: "坚果孙哥",
+    name: { zh: "坚果孙哥", en: "Nutty Sun" },
     textureKey: "character-standard",
     assetPath: "characters/nut-standard.png",
     unlockLevel: 1,
   },
   {
     id: "muscle",
-    name: "薄肌孙哥",
+    name: { zh: "薄肌孙哥", en: "Lean Muscle Sun" },
     textureKey: "character-muscle",
     assetPath: "characters/nut-muscle.png",
     unlockLevel: 3,

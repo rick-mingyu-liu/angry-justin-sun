@@ -25,7 +25,7 @@ function shots(count: number): { type: BirdType }[] {
 
 function describe(id: number): Pick<GridLevelBlueprint, "levelId" | "name" | "teachingFocus"> {
   const entry = getLevelEntry(id);
-  return { levelId: entry.id, name: entry.title, teachingFocus: entry.hint };
+  return { levelId: entry.id, name: entry.title.zh, teachingFocus: entry.hint.zh };
 }
 
 const BLUEPRINTS: GridLevelBlueprint[] = [

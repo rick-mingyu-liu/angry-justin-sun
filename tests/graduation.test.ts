@@ -288,9 +288,13 @@ describe("nickname", () => {
   });
 
   it("falls back to the default name only at display time", () => {
-    expect(DEFAULT_GRADUATE_NAME).toBe("薄肌同学");
+    expect(DEFAULT_GRADUATE_NAME).toEqual({ zh: "薄肌同学", en: "Lean Muscle Graduate" });
     expect(displayNickname("")).toBe("薄肌同学");
+    expect(displayNickname("", "zh")).toBe("薄肌同学");
+    expect(displayNickname("", "en")).toBe("Lean Muscle Graduate");
+    expect(displayNickname("  ", "en")).toBe("Lean Muscle Graduate");
     expect(displayNickname("阿伟")).toBe("阿伟");
+    expect(displayNickname("阿伟", "en")).toBe("阿伟");
     for (const blank of ["", "   ", "\n \t"]) {
       const p = setGraduationNickname(graduate(), blank);
       expect(p.graduation?.nickname).toBe("");

@@ -75,11 +75,13 @@ describe("chapterVideoRef", () => {
   it("combines the main video with the chapter start", () => {
     const podcast: Podcast = {
       id: "p",
-      title: "t",
+      title: { zh: "t", en: "t" },
       video: { bvid: BVID, page: 2, startSeconds: 5 },
       chapters: [],
     };
-    expect(chapterVideoRef(podcast, { id: "c", title: "c", startSeconds: 120 })).toEqual({
+    expect(
+      chapterVideoRef(podcast, { id: "c", title: { zh: "c", en: "c" }, startSeconds: 120 })
+    ).toEqual({
       bvid: BVID,
       page: 2,
       startSeconds: 120,

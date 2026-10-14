@@ -43,9 +43,10 @@ describe("buildCertificateModel", () => {
     // One star everywhere plus two extra on the first five levels: not the mock-up's 72 / 90.
     const progress = recognizeGraduation(win(ALL_IDS.slice(0, 5), 3, win(ALL_IDS, 1)), EARNED_ON);
     const earned = N + 10;
-    expect(buildCertificateModel(progress)).toEqual({
+    expect(buildCertificateModel(progress, "zh")).toEqual({
+      language: "zh",
       institution: "刘瑞克 · 薄肌学院",
-      institutionEn: "LIU RUIKE · BOJI ACADEMY",
+      institutionTranslation: "LIU RUIKE · LEAN MUSCLE ACADEMY",
       title: "薄肌毕业证书",
       subtitle: "CERTIFICATE OF COMPLETION",
       recipient: "薄肌同学",
@@ -60,6 +61,52 @@ describe("buildCertificateModel", () => {
       excellent: false,
       excellentBadge: "优秀毕业生",
     });
+  });
+
+  it("prints the English copy with the same numbers and date", () => {
+    const progress = recognizeGraduation(win(ALL_IDS.slice(0, 5), 3, win(ALL_IDS, 1)), EARNED_ON);
+    const earned = N + 10;
+    expect(buildCertificateModel(progress, "en")).toEqual({
+      language: "en",
+      institution: "Liu Ruike · Lean Muscle Academy",
+      institutionTranslation: "刘瑞克 · 薄肌学院",
+      title: "Lean Muscle Diploma",
+      subtitle: "CERTIFICATE OF COMPLETION",
+      recipient: "Lean Muscle Graduate",
+      body: `Has cleared all ${N} levels`,
+      secondLine: "From today on, you may launch Brother Sun on your own.",
+      clearedText: `Cleared ${N} / ${N}`,
+      starsText: `Total stars ${earned} / ${MAXIMUM}`,
+      dateLabel: "Graduated",
+      dateText: "2029.07.04",
+      seal: "Approved to Graduate",
+      footer: "This certifies slingshot skill only. Abs sold separately.",
+      excellent: false,
+      excellentBadge: "Honours Graduate",
+    });
+  });
+
+  it("follows the interface language by default (Chinese outside a browser)", () => {
+    const graduated = recognizeGraduation(win(ALL_IDS, 1), EARNED_ON);
+    expect(buildCertificateModel(graduated)).toEqual(buildCertificateModel(graduated, "zh"));
+  });
+
+  it("prints a custom nickname unchanged in either language; only the default is translated", () => {
+    const graduated = recognizeGraduation(win(ALL_IDS, 1), EARNED_ON);
+    const named = setGraduationNickname(graduated, " Ada  Lovelace ");
+    expect(buildCertificateModel(named, "en")?.recipient).toBe("Ada Lovelace");
+    expect(buildCertificateModel(setGraduationNickname(graduated, "阿伟"), "en")?.recipient).toBe(
+      "阿伟"
+    );
+    expect(buildCertificateModel(graduated, "en")?.recipient).toBe("Lean Muscle Graduate");
+    expect(buildCertificateModel(graduated, "zh")?.recipient).toBe("薄肌同学");
+  });
+
+  it("marks an all-stars graduate as excellent in English too", () => {
+    const perfect = recognizeGraduation(win(ALL_IDS, MAX_STARS_PER_LEVEL), EARNED_ON);
+    const model = buildCertificateModel(perfect, "en");
+    expect(model?.excellent).toBe(true);
+    expect(model?.starsText).toBe(`Total stars ${MAXIMUM} / ${MAXIMUM}`);
   });
 
   it("matches today's catalog of thirty levels", () => {

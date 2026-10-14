@@ -16,6 +16,8 @@ import {
   type CertificateAssets,
 } from "../certificate/render";
 import { CERTIFICATE_HEIGHT, CERTIFICATE_WIDTH } from "../certificate/types";
+import { onLanguageChange } from "../i18n/language";
+import { m } from "../i18n/messages";
 import {
   displayNickname,
   NICKNAME_MAX_CODE_UNITS,
@@ -24,7 +26,6 @@ import {
 } from "../storage/progress";
 import { button, el, icon } from "./dom";
 
-const EXPORT_FILE_NAME = "薄肌毕业证书.png";
 const DOWNLOAD_URL_LIFETIME_MS = 60_000;
 
 export interface GraduationDialogHost {
@@ -38,14 +39,21 @@ export interface GraduationDialogHost {
 export class GraduationDialog {
   readonly element = el("dialog", "help graduation");
 
-  private readonly heading = el("h2", "help__heading", "薄肌毕业证书");
+  private readonly heading = el("h2", "help__heading");
   private readonly greeting = el("p", "graduation__greeting");
   private readonly nickname = el("input", "graduation__input");
   private readonly canvas = el("canvas", "graduation__canvas");
   private readonly status = el("p", "graduation__status");
-  private readonly saveButton = button("btn btn--primary", "保存图片");
+  private readonly saveButton = button("btn btn--primary", "");
   private readonly manual = el("div", "graduation__manual");
   private readonly manualImage = el("img", "graduation__manual-image");
+  private readonly closeButton = el("button", "btn btn--icon");
+  private readonly label = el("span", "graduation__label");
+  private readonly hint = el("span", "graduation__hint");
+  private readonly manualNote = el("p", "graduation__manual-note");
+  private readonly keepPlaying = button("btn", "");
+  /** Re-renders the current status in a new language. null: no status shown. */
+  private statusText: (() => string) | null = null;
 
   private assets: CertificateAssets | null = null;
   /** Play the reveal on the first successful draw of this opening, not on an empty canvas. */
@@ -53,6 +61,11 @@ export class GraduationDialog {
 
   constructor(private readonly host: GraduationDialogHost) {
     this.build();
+    this.renderText();
+    onLanguageChange(() => {
+      this.renderText();
+      if (this.element.open) void this.refreshPreview();
+    });
   }
 
   get isOpen(): boolean {
@@ -78,7 +91,7 @@ export class GraduationDialog {
     this.nickname.value = record?.nickname ?? "";
     this.celebrateOnDraw = celebrate;
     this.element.classList.remove("is-celebrating", "is-drawn");
-    this.setStatus("证书生成中…");
+    this.setStatus(() => m().certificateDrawing);
     this.clearManualImage();
     this.renderGreeting();
     this.element.showModal();
@@ -99,9 +112,8 @@ export class GraduationDialog {
     const heading = this.heading;
     heading.id = "graduation-heading";
     heading.tabIndex = -1;
-    const closeButton = el("button", "btn btn--icon");
+    const closeButton = this.closeButton;
     closeButton.type = "button";
-    closeButton.setAttribute("aria-label", "关闭");
     closeButton.append(icon("close"));
     closeButton.addEventListener("click", () => this.close());
     head.append(heading, closeButton);
@@ -110,15 +122,10 @@ export class GraduationDialog {
     this.nickname.type = "text";
     this.nickname.id = "graduation-nickname";
     this.nickname.setAttribute("autocomplete", "nickname");
-    this.nickname.placeholder = displayNickname("");
     this.nickname.enterKeyHint = "done";
     this.nickname.maxLength = NICKNAME_MAX_CODE_UNITS;
     field.htmlFor = this.nickname.id;
-    field.append(
-      el("span", "graduation__label", "证书上的名字"),
-      this.nickname,
-      el("span", "graduation__hint", `最多 ${NICKNAME_MAX_GRAPHEMES} 个字，留空就写「薄肌同学」`)
-    );
+    field.append(this.label, this.nickname, this.hint);
     // "change" fires on blur: the field then shows the stored, normalised value.
     // During IME composition (pinyin and friends) the field holds unfinished
     // input; it is saved when the composition ends.
@@ -139,18 +146,13 @@ export class GraduationDialog {
     this.status.setAttribute("role", "status");
     this.status.setAttribute("aria-live", "polite");
 
-    this.manualImage.alt = "薄肌毕业证书图片";
-    this.manual.append(
-      el("p", "graduation__manual-note", "如果没有自动下载，长按或右键下面这张图片保存："),
-      this.manualImage
-    );
+    this.manual.append(this.manualNote, this.manualImage);
     this.manual.hidden = true;
 
     const actions = el("div", "graduation__actions");
-    const keepPlaying = button("btn", "继续挑战满星");
     this.saveButton.element.addEventListener("click", () => void this.exportImage());
-    keepPlaying.element.addEventListener("click", () => this.close());
-    actions.append(this.saveButton.element, keepPlaying.element);
+    this.keepPlaying.element.addEventListener("click", () => this.close());
+    actions.append(this.saveButton.element, this.keepPlaying.element);
 
     const body = el("div", "graduation__body");
     body.append(this.greeting, field, this.canvas, this.status, actions, this.manual);
@@ -182,16 +184,33 @@ export class GraduationDialog {
     void this.refreshPreview();
   }
 
+  /** Every piece of interface text, in the current language. */
+  private renderText(): void {
+    const text = m();
+    const fallback = displayNickname("");
+    this.heading.textContent = text.certificateHeading;
+    this.closeButton.setAttribute("aria-label", text.close);
+    this.label.textContent = text.nicknameLabel;
+    this.nickname.placeholder = fallback;
+    this.hint.textContent = text.nicknameHint(NICKNAME_MAX_GRAPHEMES, fallback);
+    this.manualNote.textContent = text.manualSaveNote;
+    this.manualImage.alt = text.manualImageAlt;
+    this.saveButton.label.textContent = text.saveImage;
+    this.keepPlaying.label.textContent = text.keepPlaying;
+    if (this.statusText) this.status.textContent = this.statusText();
+    this.renderGreeting();
+  }
+
   private renderGreeting(): void {
     const name = displayNickname(this.host.getProgress().graduation?.nickname ?? "");
-    this.greeting.textContent = `恭喜毕业，${name}。`;
+    this.greeting.textContent = m().certificateGreeting(name);
   }
 
   /** Redraws the shared preview/export canvas from the current progress. */
   private async refreshPreview(): Promise<boolean> {
     const model = buildCertificateModel(this.host.getProgress());
     if (!model) {
-      this.setStatus("还没有通关全部关卡，证书暂时不能生成。");
+      this.setStatus(() => m().certificateNotEligible);
       return false;
     }
     try {
@@ -205,22 +224,24 @@ export class GraduationDialog {
         this.element.classList.add("is-drawn");
         this.element.classList.toggle("is-celebrating", this.celebrateOnDraw);
       }
-      this.setStatus("");
+      this.setStatus(null);
       this.canvas.setAttribute(
         "aria-label",
-        `${latest.title}：${latest.recipient}，${latest.body}，${latest.starsText}，${latest.dateLabel} ${latest.dateText}`
+        latest.language === "zh"
+          ? `${latest.title}：${latest.recipient}，${latest.body}，${latest.starsText}，${latest.dateLabel} ${latest.dateText}`
+          : `${latest.title}: ${latest.recipient}, ${latest.body}, ${latest.starsText}, ${latest.dateLabel} ${latest.dateText}`
       );
       return true;
     } catch (error) {
       console.error("[GraduationDialog] could not draw the certificate", error);
-      this.setStatus("证书图片加载失败，请检查网络后重试。");
+      this.setStatus(() => m().certificateLoadFailed);
       return false;
     }
   }
 
   private async exportImage(): Promise<void> {
     this.saveButton.element.disabled = true;
-    this.setStatus("正在生成图片…");
+    this.setStatus(() => m().exporting);
     try {
       if (!(await this.refreshPreview())) return;
       const blob = await certificateToBlob(this.canvas);
@@ -229,7 +250,7 @@ export class GraduationDialog {
 
       const link = el("a");
       link.href = url;
-      link.download = EXPORT_FILE_NAME;
+      link.download = m().exportFileName;
       link.hidden = true;
       this.element.append(link);
       link.click();
@@ -243,10 +264,10 @@ export class GraduationDialog {
       // in-app webviews are unreliable at long-press saving blob URLs.
       this.manualImage.src = this.canvas.toDataURL("image/png");
       this.manual.hidden = false;
-      this.setStatus("图片已生成。");
+      this.setStatus(() => m().exported);
     } catch (error) {
       console.error("[GraduationDialog] export failed", error);
-      this.setStatus("图片生成失败，请再点一次「保存图片」重试。");
+      this.setStatus(() => m().exportFailed);
     } finally {
       this.saveButton.element.disabled = false;
     }
@@ -257,8 +278,10 @@ export class GraduationDialog {
     this.manualImage.removeAttribute("src");
   }
 
-  private setStatus(text: string): void {
-    this.status.textContent = text;
-    this.status.hidden = text === "";
+  /** A function, not a string, so a language switch can re-render the message. */
+  private setStatus(text: (() => string) | null): void {
+    this.statusText = text;
+    this.status.textContent = text ? text() : "";
+    this.status.hidden = text === null;
   }
 }

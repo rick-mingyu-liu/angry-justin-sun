@@ -1,15 +1,15 @@
 # Certificate font: Noto Serif SC subset
 
-Recorded 2026-10-13. This file covers only the two fonts under `game-assets/fonts/`. The game's other fonts (Kenney) are covered in `ASSETS.md` and are not touched here.
+Recorded 2026-10-13; rebuilt 2026-10-14 for the English certificate. This file covers only the two fonts under `game-assets/fonts/`. The game's other fonts (Kenney) are covered in `ASSETS.md` and are not touched here.
 
 ## What the files are
 
 | File | Weight | Size | sha256 |
 | --- | --- | --- | --- |
-| `game-assets/fonts/certificate-serif-700.woff2` | Bold, `usWeightClass` 700 | 20,840 bytes | `32c5af59f5451daed83da4b74c4904a1a82af4e07d5f4547c6b343ccdf8d9cc6` |
-| `game-assets/fonts/certificate-serif-900.woff2` | Black, `usWeightClass` 900 | 20,800 bytes | `a35f4ab81ee1c37bfafe6582a9bb87c91e34aed4d0a02e26bcb2254878c10f5e` |
+| `game-assets/fonts/certificate-serif-700.woff2` | Bold, `usWeightClass` 700 | 23,592 bytes | `199c0061ad3e7a07c38303f3d00d5a10d4e411bfbb6d7b30cfa68bd11073a6b7` |
+| `game-assets/fonts/certificate-serif-900.woff2` | Black, `usWeightClass` 900 | 23,544 bytes | `456c5b3addc7ee596de2cfd2d48c46560b04eca002eb87e7010e605d0e9ad0e2` |
 
-Both are static instances of the Noto Serif SC variable font, cut down to the 134 characters the graduation certificate draws. Each has 163 glyphs: the 134 mapped characters, `.notdef`, and 28 unmapped alternates that the kept layout features point to. They are a Modified Version in the licence's terms. Anything outside the glyph list, such as a player's nickname, is drawn by the browser's own serif.
+Both are static instances of the Noto Serif SC variable font, cut down to the 165 characters the graduation certificate draws in Chinese and English, plus all of printable ASCII. Each has 202 glyphs: the 165 mapped characters, `.notdef`, and 36 unmapped alternates that the kept layout features point to. They are a Modified Version in the licence's terms. A player's nickname that uses any character outside the glyph list is drawn wholly in the browser's own serif.
 
 Internal names, unchanged from the original apart from the weight: family `Noto Serif SC`, styles `Bold` and `Black`, PostScript names `NotoSerifSC-Bold` and `NotoSerifSC-Black`. The app loads the files through the FontFace API under its own family name, "Boji Certificate Serif"; that name exists only in the app's code, not in the font files.
 
@@ -34,7 +34,7 @@ The original font is not kept in this repository.
 
 ## How the files were made
 
-`scripts/subset-certificate-font.py` holds the whole procedure and the glyph list. It refuses a source file whose sha256 differs from the one above, and it exits with an error if an output is missing a character, contains U+7684 (的), or is not a static instance of the right weight. Run on 2026-10-13 with Python 3.14.7, fontTools 4.66.1 and brotli, installed in a throwaway virtual environment outside the repository:
+`scripts/subset-certificate-font.py` holds the whole procedure and the glyph list. It refuses a source file whose sha256 differs from the one above, and it exits with an error if an output is missing a character, contains U+7684 (的), or is not a static instance of the right weight. First run on 2026-10-13 with Python 3.14.7, fontTools 4.66.1 and brotli. The current files were built on 2026-10-14 with Python 3.12.14, fontTools 4.66.1 and brotli 1.2.0; that setup rebuilt the 2026-10-13 glyph list byte-identically to the earlier files before the list was extended. Both in a throwaway virtual environment outside the repository:
 
 ```sh
 python3 -m venv /tmp/font-venv
@@ -54,13 +54,13 @@ The copyright, trademark, designer and licence name records (name IDs 0, 7 to 14
 
 ## Glyph list
 
-134 characters, the same in both files:
+165 characters, the same in both files:
 
 ```
- ()-./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz·—　。业书了予今从以优你修克全关准刘发另可同哥喜天孙学完射已平弓弹总恭成数日明星期本毕水炼独瑞生秀立肌腹薄行证请起通部院（），：
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~·—‘’“”…　。业书了予今从以优你修克全关准刘发另可同哥喜天孙学完射已平弓弹总恭成数日明星期本毕水炼独瑞生秀立肌腹薄行证请起通部院（），：
 ```
 
-That is: space (U+0020), ideographic space (U+3000), digits, A-Z, a-z, the punctuation `( ) - . / :` `·` (U+00B7) `—` (U+2014) `。` `（` `）` `，` `：`, and these 57 Han characters:
+That is: all 95 printable ASCII characters (U+0020 to U+007E), ideographic space (U+3000), `·` (U+00B7) `—` (U+2014) `‘` `’` `“` `”` `…` (U+2026) `。` `（` `）` `，` `：`, and these 57 Han characters:
 
 ```
 业书了予今从以优你修克全关准刘发另可同哥喜天孙学完射已平弓弹总恭成数日明星期本毕水炼独瑞生秀立肌腹薄行证请起通部院
@@ -70,7 +70,7 @@ They come from this fixed certificate copy:
 
 ```
 刘瑞克 · 薄肌学院
-LIU RUIKE · BOJI ACADEMY
+LIU RUIKE · LEAN MUSCLE ACADEMY
 薄肌毕业证书
 CERTIFICATE OF COMPLETION
 薄肌同学
@@ -83,7 +83,20 @@ CERTIFICATE OF COMPLETION
 优秀毕业生
 本证书证明弹弓水平，腹肌请另行修炼。
 恭喜毕业
+Liu Ruike · Lean Muscle Academy
+Lean Muscle Diploma
+Lean Muscle Graduate
+Has cleared all 30 levels
+From today on, you may launch Brother Sun on your own.
+Cleared 30 / 30
+Total stars 72 / 90
+Graduated 2026.10.13
+Approved to Graduate
+Honours Graduate
+This certifies slingshot skill only. Abs sold separately.
 ```
+
+Printable ASCII is there in full so that a Latin nickname is drawn in the same face as the rest of the certificate; the quotes and the ellipsis are there for names and for a shortened name. The list of non-ASCII characters is repeated in `CERTIFICATE_FONT_NON_ASCII` in `src/certificate/types.ts`, which decides whether a nickname can use the bundled face.
 
 If the certificate copy changes, add the new text to `COPY` in the script and rebuild; a character that is not in the list is drawn in the system serif and will look different from its neighbours.
 

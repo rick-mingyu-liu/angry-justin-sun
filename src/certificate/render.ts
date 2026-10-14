@@ -5,6 +5,7 @@
  * the only bitmaps.
  */
 
+import type { Language } from "../i18n/language";
 import {
   drawBanner,
   drawFlourish,
@@ -19,7 +20,7 @@ import {
 import {
   CERTIFICATE_ASSET_PATHS,
   CERTIFICATE_FONT_FAMILY,
-  CERTIFICATE_FONT_HANZI,
+  CERTIFICATE_FONT_NON_ASCII,
   CERTIFICATE_FONT_STACK,
   CERTIFICATE_SYSTEM_FONT_STACK,
   CERTIFICATE_HEIGHT,
@@ -60,8 +61,18 @@ const CENTRE_X = CERTIFICATE_WIDTH / 2;
 const BASELINE_SHIFT = 0.35;
 const FONT_STEP = 2;
 
-const INSTITUTION = { y: 132, size: 48, minSize: 30, maxWidth: 560, tracking: 0.08 };
-const INSTITUTION_EN = { y: 177, size: 22, minSize: 14, maxWidth: 620, tracking: 0.26 };
+// A style's `en` entries replace its values on the English certificate: Latin
+// text wants much tighter letter spacing than CJK, and its lines run longer.
+
+const INSTITUTION = {
+  y: 132,
+  size: 48,
+  minSize: 30,
+  maxWidth: 560,
+  tracking: 0.08,
+  en: { size: 40, tracking: 0.01 },
+};
+const INSTITUTION_TRANSLATION = { y: 177, size: 22, minSize: 14, maxWidth: 620, tracking: 0.26 };
 const INSTITUTION_LAUREL = { offsetX: 318, baseY: 214, length: 158, lean: 0.95, bend: 1.25 };
 const INSTITUTION_STARS = [
   { dx: 452, y: 150, r: 8 },
@@ -69,7 +80,14 @@ const INSTITUTION_STARS = [
 ];
 const INSTITUTION_RULE = { y: 212, halfWidth: 150, star: 8 };
 
-const TITLE = { y: 306, size: 168, minSize: 96, maxWidth: 1080, tracking: 0.03 };
+const TITLE = {
+  y: 306,
+  size: 168,
+  minSize: 96,
+  maxWidth: 1080,
+  tracking: 0.03,
+  en: { size: 132, tracking: 0 },
+};
 const TITLE_GLOW_OFFSET = 4;
 const TITLE_FLOURISH = { gap: 34, size: 178, minX: 130 };
 const TITLE_STARS = [
@@ -94,20 +112,72 @@ const RECIPIENT = {
 const RECIPIENT_RULE = { y: 606, halfWidth: 236, star: 7 };
 const ELLIPSIS = "…";
 
-const BODY = { y: 656, size: 40, minSize: 26, maxWidth: 740, tracking: 0.04 };
-const SECOND_LINE = { y: 714, size: 40, minSize: 26, maxWidth: 740, tracking: 0.04 };
+const BODY = {
+  y: 656,
+  size: 40,
+  minSize: 26,
+  maxWidth: 740,
+  tracking: 0.04,
+  en: { tracking: 0.01 },
+};
+const SECOND_LINE = {
+  y: 714,
+  size: 40,
+  minSize: 26,
+  maxWidth: 740,
+  tracking: 0.04,
+  en: { size: 32, minSize: 22, tracking: 0.005 },
+};
 
-const STATS = { y: 790, columnOffset: 262, columnWidth: 226, size: 32, minSize: 20 };
-const STATS_DATE = { labelDy: -21, labelSize: 24, textDy: 19, textSize: 30, minSize: 18 };
+const STATS = {
+  y: 790,
+  columnOffset: 262,
+  columnWidth: 226,
+  size: 32,
+  minSize: 20,
+  tracking: 0.03,
+  en: { size: 30, tracking: 0.005 },
+};
+const STATS_DATE = {
+  labelDy: -21,
+  labelSize: 24,
+  labelTracking: 0.1,
+  textDy: 19,
+  textSize: 30,
+  minSize: 18,
+  en: { labelSize: 22, labelTracking: 0.06 },
+};
 const STATS_DIVIDER = { halfHeight: 34 };
 const STATS_RULE = { dy: 50, halfWidth: 46, star: 5 };
 
 const SEAL = { y: 950, radius: 92, rotation: -0.13, alpha: 0.93 };
 const SEAL_TEXT = { dy: 30, size: 46, minSize: 24, maxWidth: 134, tracking: 0.02 };
+/** Seal text too long for one line (the English one) is broken at a space into two. */
+const SEAL_TWO_LINES = {
+  dy: [12, 42],
+  size: 26,
+  minSize: 16,
+  maxWidth: [150, 128],
+  tracking: 0.02,
+};
 const SEAL_FLOURISH = { gap: 26, size: 132 };
 
-const FOOT_INSTITUTION = { y: 1072, size: 28, minSize: 18, maxWidth: 520, tracking: 0.1 };
-const FOOTER = { y: 1112, size: 23, minSize: 15, maxWidth: 640, tracking: 0.12 };
+const FOOT_INSTITUTION = {
+  y: 1072,
+  size: 28,
+  minSize: 18,
+  maxWidth: 520,
+  tracking: 0.1,
+  en: { tracking: 0.02 },
+};
+const FOOTER = {
+  y: 1112,
+  size: 23,
+  minSize: 15,
+  maxWidth: 640,
+  tracking: 0.12,
+  en: { tracking: 0.01 },
+};
 const FOOTER_RULE = { gap: 22, length: 96 };
 
 // --- Characters ----------------------------------------------------------------------------
@@ -134,7 +204,14 @@ const HEAD_RAYS = { centreDy: 0.5, inner: 224, outer: 252, angles: [-126, -110, 
 // --- Excellent badge (only drawn when model.excellent) ---------------------------------------
 
 const BADGE = { x: 292, y: 470, radius: 54, bannerDy: 38, bannerHeight: 46, rotation: -0.07 };
-const BADGE_TEXT = { size: 28, minSize: 16, maxWidth: 232, tracking: 0.08, padding: 26 };
+const BADGE_TEXT = {
+  size: 28,
+  minSize: 16,
+  maxWidth: 232,
+  tracking: 0.08,
+  padding: 26,
+  en: { tracking: 0.02 },
+};
 
 // --- Text helpers --------------------------------------------------------------------------
 
@@ -146,6 +223,12 @@ interface LineStyle {
   minSize: number;
   maxWidth: number;
   tracking: number;
+}
+
+/** The style for `language`: its `en` entries applied on the English certificate. */
+function styleFor<T extends object>(style: T & { en?: Partial<T> }, language: Language): T {
+  const { en, ...base } = style;
+  return (language === "en" ? { ...base, ...en } : base) as T;
 }
 
 interface SegmenterLike {
@@ -172,11 +255,14 @@ function setFont(ctx: Ctx, weight: FontWeight, size: number): void {
   ctx.font = `${weight} ${size}px ${activeFontStack}`;
 }
 
-const SUBSET_HANZI = new Set(CERTIFICATE_FONT_HANZI);
+const SUBSET_NON_ASCII = new Set(CERTIFICATE_FONT_NON_ASCII);
 
-/** True when every character is in the bundled subset (its hanzi, or plain ASCII). */
+/** True when every character is in the bundled subset (printable ASCII, or its listed extras). */
 function subsetCovers(text: string): boolean {
-  return Array.from(text).every((char) => SUBSET_HANZI.has(char) || char.charCodeAt(0) < 0x7f);
+  return Array.from(text).every((char) => {
+    const code = char.charCodeAt(0);
+    return (code >= 0x20 && code < 0x7f) || SUBSET_NON_ASCII.has(char);
+  });
 }
 
 /** Width of `text` in the current font with `spacing` px between graphemes. */
@@ -255,8 +341,16 @@ function isBlank(part: string): boolean {
   return part.trim() === "";
 }
 
-/** The most even two-line split in which both lines fit, preferring a break at a space. */
-function splitInTwo(ctx: Ctx, parts: string[], size: number): string[] | null {
+/** A break between words: at a space or after a hyphen. */
+function isWordBreak(parts: string[], i: number): boolean {
+  return isBlank(parts[i - 1]) || isBlank(parts[i]) || parts[i - 1] === "-";
+}
+
+/**
+ * The most even two-line split in which both lines fit. A split between words always wins over
+ * one inside a word, so a Latin name is never cut mid-word when a word break fits.
+ */
+function splitInTwo(ctx: Ctx, parts: string[]): string[] | null {
   let best: string[] | null = null;
   let bestCost = Infinity;
   for (let i = 1; i < parts.length; i++) {
@@ -266,8 +360,7 @@ function splitInTwo(ctx: Ctx, parts: string[], size: number): string[] | null {
     const a = ctx.measureText(first).width;
     const b = ctx.measureText(second).width;
     if (a > RECIPIENT.maxWidth || b > RECIPIENT.maxWidth) continue;
-    const atSpace = isBlank(parts[i - 1]) || isBlank(parts[i]);
-    const cost = Math.abs(a - b) - (atSpace ? size * 2 : 0);
+    const cost = Math.abs(a - b) + (isWordBreak(parts, i) ? 0 : RECIPIENT.maxWidth);
     if (cost < bestCost) {
       bestCost = cost;
       best = [first, second];
@@ -304,7 +397,7 @@ function layoutRecipient(ctx: Ctx, text: string): RecipientLayout {
 
   for (let size = RECIPIENT.twoLineSize; size >= RECIPIENT.twoLineFloor; size -= FONT_STEP) {
     setFont(ctx, 700, size);
-    const lines = splitInTwo(ctx, parts, size);
+    const lines = splitInTwo(ctx, parts);
     if (lines) return { lines, size };
   }
 
@@ -404,8 +497,8 @@ function drawHeader(ctx: Ctx, model: CertificateModel): void {
       drawStar(ctx, CENTRE_X + side * star.dx, star.y, star.r, GOLD);
     }
   }
-  drawLine(ctx, model.institution, 700, INSTITUTION, INK);
-  drawLine(ctx, model.institutionEn, 700, INSTITUTION_EN, INK);
+  drawLine(ctx, model.institution, 700, styleFor(INSTITUTION, model.language), INK);
+  drawLine(ctx, model.institutionTranslation, 700, INSTITUTION_TRANSLATION, INK);
   drawStarRule(
     ctx,
     CENTRE_X,
@@ -417,15 +510,16 @@ function drawHeader(ctx: Ctx, model: CertificateModel): void {
 }
 
 function drawTitle(ctx: Ctx, model: CertificateModel): void {
-  const size = fitSize(ctx, model.title, 900, TITLE);
-  const spacing = size * TITLE.tracking;
-  const baseline = TITLE.y + size * BASELINE_SHIFT;
+  const style = styleFor(TITLE, model.language);
+  const size = fitSize(ctx, model.title, 900, style);
+  const spacing = size * style.tracking;
+  const baseline = style.y + size * BASELINE_SHIFT;
   ctx.fillStyle = TITLE_GLOW;
-  fillCentred(ctx, model.title, CENTRE_X, baseline + TITLE_GLOW_OFFSET, spacing, TITLE.maxWidth);
+  fillCentred(ctx, model.title, CENTRE_X, baseline + TITLE_GLOW_OFFSET, spacing, style.maxWidth);
   ctx.fillStyle = INK;
-  fillCentred(ctx, model.title, CENTRE_X, baseline, spacing, TITLE.maxWidth);
+  fillCentred(ctx, model.title, CENTRE_X, baseline, spacing, style.maxWidth);
 
-  const half = Math.min(TITLE.maxWidth, measure(ctx, model.title, spacing)) / 2;
+  const half = Math.min(style.maxWidth, measure(ctx, model.title, spacing)) / 2;
   for (const side of [-1, 1] as const) {
     const reach = Math.min(
       half + TITLE_FLOURISH.gap,
@@ -454,26 +548,34 @@ function drawSubtitle(ctx: Ctx, model: CertificateModel): void {
 }
 
 function drawStatistics(ctx: Ctx, model: CertificateModel): void {
+  const stats = styleFor(STATS, model.language);
+  const date = styleFor(STATS_DATE, model.language);
   const left = CENTRE_X - STATS.columnOffset;
   const right = CENTRE_X + STATS.columnOffset;
   const column = {
-    size: STATS.size,
-    minSize: STATS.minSize,
+    size: stats.size,
+    minSize: stats.minSize,
     maxWidth: STATS.columnWidth,
-    tracking: 0.03,
+    tracking: stats.tracking,
   };
-  drawLine(ctx, model.clearedText, 700, { ...column, y: STATS.y }, INK, left);
-  drawLine(ctx, model.starsText, 700, { ...column, y: STATS.y }, INK, CENTRE_X);
+  // The two counts share one size, so a longer label does not make its column look smaller.
+  const countSize = Math.min(
+    fitSize(ctx, model.clearedText, 700, column),
+    fitSize(ctx, model.starsText, 700, column)
+  );
+  const counts = { ...column, y: STATS.y, size: countSize };
+  drawLine(ctx, model.clearedText, 700, counts, INK, left);
+  drawLine(ctx, model.starsText, 700, counts, INK, CENTRE_X);
   drawLine(
     ctx,
     model.dateLabel,
     700,
     {
       ...column,
-      y: STATS.y + STATS_DATE.labelDy,
-      size: STATS_DATE.labelSize,
+      y: STATS.y + date.labelDy,
+      size: date.labelSize,
       minSize: 14,
-      tracking: 0.1,
+      tracking: date.labelTracking,
     },
     INK,
     right
@@ -484,9 +586,9 @@ function drawStatistics(ctx: Ctx, model: CertificateModel): void {
     700,
     {
       ...column,
-      y: STATS.y + STATS_DATE.textDy,
-      size: STATS_DATE.textSize,
-      minSize: STATS_DATE.minSize,
+      y: STATS.y + date.textDy,
+      size: date.textSize,
+      minSize: date.minSize,
     },
     INK,
     right
@@ -540,20 +642,55 @@ function drawSeal(ctx: Ctx, model: CertificateModel): void {
   for (const side of [-1, 1]) {
     drawLaurel(ctx, side * 22, -4, 54, -Math.PI / 2 + side * 1.1, side * -1.15, SEAL_RED);
   }
-  drawLine(ctx, model.seal, 900, { ...SEAL_TEXT, y: SEAL_TEXT.dy }, SEAL_RED, 0);
+  drawSealText(ctx, model.seal);
   ctx.restore();
 }
 
+/**
+ * The seal text under the walnut, in capitals like a rubber stamp (Chinese is unaffected). One
+ * line when it fits at the minimum size; otherwise two lines at one shared size.
+ */
+function drawSealText(ctx: Ctx, text: string): void {
+  const stamp = text.toUpperCase();
+  setFont(ctx, 900, SEAL_TEXT.minSize);
+  const words = stamp.split(" ");
+  if (
+    words.length < 2 ||
+    measure(ctx, stamp, SEAL_TEXT.minSize * SEAL_TEXT.tracking) <= SEAL_TEXT.maxWidth
+  ) {
+    drawLine(ctx, stamp, 900, { ...SEAL_TEXT, y: SEAL_TEXT.dy }, SEAL_RED, 0);
+    return;
+  }
+  const two = SEAL_TWO_LINES;
+  // The split that allows the largest shared size wins (the lower line has the narrower chord).
+  let best = { lines: [stamp, ""], size: 0 };
+  for (let i = 1; i < words.length; i++) {
+    const lines = [words.slice(0, i).join(" "), words.slice(i).join(" ")];
+    const size = Math.min(
+      ...lines.map((line, row) => {
+        const style = { ...two, maxWidth: two.maxWidth[row] };
+        return fitSize(ctx, line, 900, style);
+      })
+    );
+    if (size > best.size) best = { lines, size };
+  }
+  best.lines.forEach((line, row) => {
+    const style = { ...two, y: two.dy[row], size: best.size, maxWidth: two.maxWidth[row] };
+    drawLine(ctx, line, 900, style, SEAL_RED, 0);
+  });
+}
+
 function drawFooter(ctx: Ctx, model: CertificateModel): void {
-  drawLine(ctx, model.institution, 700, FOOT_INSTITUTION, INK);
-  const width = drawLine(ctx, model.footer, 700, FOOTER, INK);
+  const footer = styleFor(FOOTER, model.language);
+  drawLine(ctx, model.institution, 700, styleFor(FOOT_INSTITUTION, model.language), INK);
+  const width = drawLine(ctx, model.footer, 700, footer, INK);
   ctx.strokeStyle = GOLD;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   for (const side of [-1, 1]) {
     const from = CENTRE_X + side * (width / 2 + FOOTER_RULE.gap);
-    ctx.moveTo(from, FOOTER.y);
-    ctx.lineTo(from + side * FOOTER_RULE.length, FOOTER.y);
+    ctx.moveTo(from, footer.y);
+    ctx.lineTo(from + side * FOOTER_RULE.length, footer.y);
   }
   ctx.stroke();
   for (const side of [-1, 1]) {
@@ -625,19 +762,20 @@ function drawCharacters(ctx: Ctx, assets: CertificateAssets): void {
 }
 
 /** A gold rosette with the badge text on a ribbon, in the empty space above the ordinary walnut. */
-function drawExcellentBadge(ctx: Ctx, text: string): void {
+function drawExcellentBadge(ctx: Ctx, text: string, language: Language): void {
+  const textStyle = styleFor(BADGE_TEXT, language);
   ctx.save();
   ctx.translate(BADGE.x, BADGE.y);
   ctx.rotate(BADGE.rotation);
   drawRosette(ctx, 0, 0, BADGE.radius, GOLD, GOLD_DEEP, PAPER);
   drawStar(ctx, 0, -6, BADGE.radius * 0.4, PAPER);
 
-  const size = fitSize(ctx, text, 700, BADGE_TEXT);
-  const spacing = size * BADGE_TEXT.tracking;
-  const width = Math.min(BADGE_TEXT.maxWidth, measure(ctx, text, spacing)) + BADGE_TEXT.padding * 2;
+  const size = fitSize(ctx, text, 700, textStyle);
+  const spacing = size * textStyle.tracking;
+  const width = Math.min(textStyle.maxWidth, measure(ctx, text, spacing)) + textStyle.padding * 2;
   drawBanner(ctx, 0, BADGE.bannerDy, width, BADGE.bannerHeight, GOLD_LIGHT, GOLD_DEEP, GOLD);
   ctx.fillStyle = INK;
-  fillCentred(ctx, text, 0, BADGE.bannerDy + size * BASELINE_SHIFT, spacing, BADGE_TEXT.maxWidth);
+  fillCentred(ctx, text, 0, BADGE.bannerDy + size * BASELINE_SHIFT, spacing, textStyle.maxWidth);
   ctx.restore();
 }
 
@@ -663,7 +801,7 @@ export function drawCertificate(
   drawTitle(ctx, model);
   drawSubtitle(ctx, model);
   drawCharacters(ctx, assets);
-  if (model.excellent) drawExcellentBadge(ctx, model.excellentBadge);
+  if (model.excellent) drawExcellentBadge(ctx, model.excellentBadge, model.language);
   drawRecipient(ctx, model.recipient);
   drawStarRule(
     ctx,
@@ -673,8 +811,8 @@ export function drawCertificate(
     RECIPIENT_RULE.star,
     GOLD
   );
-  drawLine(ctx, model.body, 700, BODY, INK);
-  drawLine(ctx, model.secondLine, 700, SECOND_LINE, INK);
+  drawLine(ctx, model.body, 700, styleFor(BODY, model.language), INK);
+  drawLine(ctx, model.secondLine, 700, styleFor(SECOND_LINE, model.language), INK);
   drawStatistics(ctx, model);
   drawSeal(ctx, model);
   drawFooter(ctx, model);

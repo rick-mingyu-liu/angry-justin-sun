@@ -18,6 +18,7 @@ import { TextPool, ImagePool, RectanglePool } from "../utils/ObjectPool";
 import { getMobileSafeBlendMode } from "../utils/MobileBlendMode";
 import { PerformanceManager } from "./PerformanceManager";
 import { MobileManager } from "./mobile/MobileManager";
+import { m } from "../i18n/messages";
 
 type ScorePopupConfigInternal = ScorePopupConfig;
 
@@ -242,7 +243,7 @@ export class ScorePopupManager implements IScorePopupManager {
 
     const text = this.comboTextPool.acquire();
     text.setPosition(clampedX, clampedY - 30);
-    text.setText(`${comboCount} 连击！`);
+    text.setText(m().combo(comboCount));
     text.setStyle({
       fontFamily: config.text.fontFamily,
       fontSize: config.text.fontSize,

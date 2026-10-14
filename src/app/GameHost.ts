@@ -27,6 +27,8 @@ import {
   type Progress,
   type ProgressStore,
 } from "../storage/progress";
+import { localize, numberLocale, onLanguageChange } from "../i18n/language";
+import { m } from "../i18n/messages";
 import { button, el, icon } from "./dom";
 import { GraduationDialog } from "./GraduationDialog";
 
@@ -48,6 +50,7 @@ type LevelResult =
 interface CharacterCard {
   definition: CharacterDefinition;
   element: HTMLButtonElement;
+  name: HTMLSpanElement;
   status: HTMLSpanElement;
   badge: HTMLSpanElement;
 }
@@ -55,7 +58,7 @@ interface CharacterCard {
 const MAX_STARS = MAX_STARS_PER_LEVEL;
 
 function formatScore(score: number): string {
-  return score.toLocaleString("zh-CN");
+  return score.toLocaleString(numberLocale());
 }
 
 export class GameHost implements SfxControl {
@@ -77,12 +80,12 @@ export class GameHost implements SfxControl {
   private result: LevelResult | null = null;
 
   private readonly title = el("h2", "toolbar__title");
-  private readonly levelMenuButton = button("btn", "选关", "grid");
+  private readonly levelMenuButton = button("btn", "", "grid");
   private readonly levelMenu = el("dialog", "help level-menu");
   private readonly levelMenuGrid = el("ol", "level-menu__grid");
   /** True when opening the level page is what paused the game. */
   private menuPausedGame = false;
-  private readonly certificateButton = button("btn graduation-entry", "毕业证书", "star");
+  private readonly certificateButton = button("btn graduation-entry", "", "star");
   private readonly graduation = new GraduationDialog({
     getProgress: () => this.store.get(),
     saveNickname: (raw) => this.store.update((progress) => setGraduationNickname(progress, raw)),
@@ -92,8 +95,8 @@ export class GameHost implements SfxControl {
   private certificatePausedGame = false;
   private celebrationTimer: number | null = null;
   private hasStartedLevel = false;
-  private readonly pauseButton = button("btn", "暂停", "pause");
-  private readonly restartButton = button("btn", "重开", "restart");
+  private readonly pauseButton = button("btn", "", "pause");
+  private readonly restartButton = button("btn", "", "restart");
   private readonly mount = el("div", "stage__mount");
   private readonly overlay = el("div", "stage__overlay");
   private readonly hintText = el("span", "hintbar__text");
@@ -101,6 +104,15 @@ export class GameHost implements SfxControl {
   private readonly shotsValue = el("strong", "hintbar__shots-value");
   private readonly cards: CharacterCard[] = [];
   private readonly busyNote = el("p", "characters__note");
+  // Static labels, rewritten by applyLanguage().
+  private readonly panel = el("section", "panel game__panel");
+  private readonly levelMenuHeading = el("h2", "help__heading");
+  private readonly levelMenuClose = el("button", "btn btn--icon");
+  private readonly charactersHeading = el("h2", "characters__heading");
+  private readonly scoreLabel = el("span");
+  private readonly shotsBefore = el("span");
+  private readonly shotsAfter = el("span");
+  private readonly notSavedNote = el("p", "characters__note characters__note--quiet");
 
   constructor() {
     this.levelId = this.store.get().highestUnlockedLevel;
@@ -108,7 +120,8 @@ export class GameHost implements SfxControl {
     // A save from before this feature that already has every level cleared.
     this.store.update((progress) => recognizeGraduation(progress, new Date()));
     this.element = this.build();
-    this.renderAll();
+    this.applyLanguage();
+    this.unsubscribers.push(onLanguageChange(() => this.applyLanguage()));
   }
 
   /** Creates and mounts the game. Call once, after `element` is in the document. */
@@ -246,8 +259,7 @@ export class GameHost implements SfxControl {
   private build(): HTMLElement {
     const root = el("div", "game");
 
-    const panel = el("section", "panel game__panel");
-    panel.setAttribute("aria-label", "弹弓游戏");
+    const panel = this.panel;
     panel.append(this.buildToolbar(), this.buildStage(), this.buildHintBar());
 
     root.append(panel, this.buildCharacters(), this.buildLevelMenu(), this.graduation.element);
@@ -277,13 +289,12 @@ export class GameHost implements SfxControl {
     dialog.setAttribute("aria-labelledby", "level-menu-heading");
 
     const head = el("div", "help__head");
-    const heading = el("h2", "help__heading", "选择关卡");
+    const heading = this.levelMenuHeading;
     heading.id = "level-menu-heading";
     const form = el("form");
     form.method = "dialog";
-    const close = el("button", "btn btn--icon");
+    const close = this.levelMenuClose;
     close.type = "submit";
-    close.setAttribute("aria-label", "返回游戏");
     close.append(icon("close"));
     form.append(close);
     this.certificateButton.element.addEventListener("click", () => this.openCertificateFromMenu());
@@ -410,17 +421,17 @@ export class GameHost implements SfxControl {
       if (level.id === this.levelId) card.setAttribute("aria-current", "true");
 
       const number = el("span", "level-card__number", String(level.id));
-      const name = el("span", "level-card__name", level.title);
+      const name = el("span", "level-card__name", localize(level.title));
       const stars = el("span", "level-card__stars");
       const earned = Math.max(0, Math.min(MAX_STARS, Math.round(best?.stars ?? 0)));
       for (let index = 0; index < MAX_STARS; index += 1) {
         stars.append(icon("star", index < earned ? "icon star is-earned" : "icon star"));
       }
       const status = locked
-        ? "通关上一关后解锁"
+        ? m().levelLockedStatus
         : best
-          ? `最高 ${formatScore(best.bestScore)}`
-          : "未通关";
+          ? m().levelBest(formatScore(best.bestScore))
+          : m().levelNotCleared;
       card.append(number, name, stars, el("span", "level-card__status", status));
       if (locked) {
         const lock = el("span", "level-card__lock");
@@ -429,7 +440,7 @@ export class GameHost implements SfxControl {
       }
       card.setAttribute(
         "aria-label",
-        `第 ${level.id} 关 · ${level.title}，${locked ? "未解锁" : `${earned} 星，${status}`}`
+        m().levelCardLabel(level.id, localize(level.title), locked, earned, status)
       );
       card.addEventListener("click", () => this.pickLevel(level.id));
 
@@ -456,10 +467,10 @@ export class GameHost implements SfxControl {
     hint.append(icon("bulb", "icon hintbar__bulb"), this.hintText);
 
     const score = el("p", "hintbar__score");
-    score.append(el("span", undefined, "得分 "), this.scoreValue);
+    score.append(this.scoreLabel, " ", this.scoreValue);
 
     const shots = el("p", "hintbar__shots");
-    shots.append(el("span", undefined, "剩余"), this.shotsValue, el("span", undefined, "发"));
+    shots.append(this.shotsBefore, this.shotsValue, this.shotsAfter);
 
     bar.append(hint, score, shots);
     return bar;
@@ -468,7 +479,7 @@ export class GameHost implements SfxControl {
   private buildCharacters(): HTMLElement {
     const panel = el("section", "panel characters");
     panel.setAttribute("aria-labelledby", "characters-heading");
-    const heading = el("h2", "characters__heading", "角色");
+    const heading = this.charactersHeading;
     heading.id = "characters-heading";
 
     const list = el("div", "characters__cards");
@@ -483,20 +494,19 @@ export class GameHost implements SfxControl {
       image.draggable = false;
       const text = el("span", "character__text");
       const status = el("span", "character__status");
-      text.append(el("span", "character__name", definition.name), status);
+      const name = el("span", "character__name");
+      text.append(name, status);
       const badge = el("span", "character__badge");
       card.append(image, text, badge);
       card.addEventListener("click", () => this.requestCharacter(definition.id));
-      this.cards.push({ definition, element: card, status, badge });
+      this.cards.push({ definition, element: card, name, status, badge });
       list.append(card);
     }
 
     const notes = el("div", "characters__notes");
     notes.append(this.busyNote);
     if (!this.store.persistent) {
-      notes.append(
-        el("p", "characters__note characters__note--quiet", "当前浏览器无法保存进度，刷新后会重置")
-      );
+      notes.append(this.notSavedNote);
     }
 
     panel.append(heading, list, notes);
@@ -504,6 +514,24 @@ export class GameHost implements SfxControl {
   }
 
   // --------------------------------------------------------------- rendering
+
+  /** Rewrites every label in the current language; game state is untouched. */
+  private applyLanguage(): void {
+    const t = m();
+    this.panel.setAttribute("aria-label", t.gameLabel);
+    this.restartButton.label.textContent = t.restart;
+    this.certificateButton.label.textContent = t.certificate;
+    this.levelMenuHeading.textContent = t.levelMenuHeading;
+    this.levelMenuClose.setAttribute("aria-label", t.levelMenuClose);
+    this.charactersHeading.textContent = t.charactersHeading;
+    for (const card of this.cards) card.name.textContent = localize(card.definition.name);
+    this.scoreLabel.textContent = t.score;
+    this.shotsBefore.textContent = t.shotsBefore;
+    this.shotsAfter.textContent = t.shotsAfter;
+    this.shotsAfter.hidden = t.shotsAfter === "";
+    this.notSavedNote.textContent = t.progressNotSaved;
+    this.renderAll();
+  }
 
   private renderAll(): void {
     this.renderToolbar();
@@ -514,21 +542,21 @@ export class GameHost implements SfxControl {
 
   private renderToolbar(): void {
     const entry = getLevelEntry(this.levelId);
-    this.title.textContent = `第 ${entry.id} 关 · ${entry.title}`;
+    this.title.textContent = m().levelTitle(entry.id, localize(entry.title));
 
-    this.levelMenuButton.label.textContent = `选关 ${this.levelId}/${TOTAL_LEVELS}`;
+    this.levelMenuButton.label.textContent = m().levelMenuWithCount(this.levelId, TOTAL_LEVELS);
     this.levelMenuButton.element.disabled = !this.started;
     this.certificateButton.element.hidden = !this.hasGraduated();
     if (this.levelMenu.open) this.renderLevelMenu();
 
-    this.pauseButton.label.textContent = this.paused ? "继续" : "暂停";
+    this.pauseButton.label.textContent = this.paused ? m().resume : m().pause;
     this.pauseButton.setIcon(this.paused ? "play" : "pause");
     this.pauseButton.element.disabled = !this.started;
     this.restartButton.element.disabled = !this.started;
   }
 
   private renderHintBar(): void {
-    const hint = getLevelEntry(this.levelId).hint;
+    const hint = localize(getLevelEntry(this.levelId).hint);
     this.hintText.textContent = hint;
     this.hintText.title = hint;
     this.scoreValue.textContent = formatScore(this.score);
@@ -553,9 +581,9 @@ export class GameHost implements SfxControl {
 
       card.status.textContent = unlocked
         ? selected
-          ? "使用中"
-          : "可切换"
-        : `第 ${definition.unlockLevel} 关解锁`;
+          ? m().characterInUse
+          : m().characterAvailable
+        : m().characterUnlockAt(definition.unlockLevel);
       card.badge.replaceChildren();
       if (!unlocked) card.badge.append(icon("lock"));
       else if (selected) card.badge.append(icon("check"));
@@ -563,7 +591,7 @@ export class GameHost implements SfxControl {
     }
     // Before the first shot the walnut is still being loaded into the slingshot.
     const fired = (this.shotsRemaining ?? 0) < (this.shotsAtStart ?? 0);
-    this.busyNote.textContent = fired ? "发射中，落地后可切换" : "坚果就位后可切换";
+    this.busyNote.textContent = fired ? m().characterBusyFired : m().characterBusyLoading;
     // The note explains the lock-out during play only, not on loading, pause or result screens.
     this.busyNote.hidden = !(anyWaiting && this.started && !this.paused && !this.result);
   }
@@ -577,18 +605,18 @@ export class GameHost implements SfxControl {
 
   private buildOverlayCard(): HTMLElement | null {
     if (this.loadFailed) {
-      return this.overlayCard("游戏加载失败", "请刷新页面重试。播客播放不受影响。");
+      return this.overlayCard(m().loadFailedTitle, m().loadFailedDetail);
     }
     if (this.paused) {
       const card = this.overlayCard(
-        "已暂停",
-        this.autoPaused ? "页面切到后台，游戏已自动暂停" : undefined
+        m().pausedTitle,
+        this.autoPaused ? m().autoPausedDetail : undefined
       );
-      card.append(this.overlayActions(["继续", () => this.adapter?.resume()]));
+      card.append(this.overlayActions([m().resume, () => this.adapter?.resume()]));
       return card;
     }
     if (!this.started) {
-      const card = this.overlayCard("游戏加载中…");
+      const card = this.overlayCard(m().loading);
       card.classList.add("overlay-card--loading");
       return card;
     }
@@ -597,20 +625,22 @@ export class GameHost implements SfxControl {
     if (!result) return null;
 
     if (result.kind === "failed") {
-      const card = this.overlayCard("差一点！");
-      card.append(this.overlayScores([["得分", result.score]]));
-      card.append(this.overlayActions(["重开", () => this.restartLevel()], this.levelMenuAction()));
+      const card = this.overlayCard(m().failedTitle);
+      card.append(this.overlayScores([[m().score, result.score]]));
+      card.append(
+        this.overlayActions([m().restart, () => this.restartLevel()], this.levelMenuAction())
+      );
       return card;
     }
 
     const nextLevel = result.levelId + 1;
     const hasNext = result.levelId < TOTAL_LEVELS;
-    const card = this.overlayCard("过关！", hasNext ? undefined : "全部关卡通关");
+    const card = this.overlayCard(m().wonTitle, hasNext ? undefined : m().allCleared);
 
     const stars = el("p", "overlay-card__stars");
     const earned = Math.max(0, Math.min(MAX_STARS, Math.round(result.stars)));
     stars.setAttribute("role", "img");
-    stars.setAttribute("aria-label", `${earned} 星（满分 ${MAX_STARS} 星）`);
+    stars.setAttribute("aria-label", m().starsLabel(earned, MAX_STARS));
     for (let index = 0; index < MAX_STARS; index += 1) {
       stars.append(icon("star", index < earned ? "icon star is-earned" : "icon star"));
     }
@@ -618,15 +648,15 @@ export class GameHost implements SfxControl {
 
     card.append(
       this.overlayScores([
-        ["得分", result.score],
-        ["最高", result.best],
+        [m().score, result.score],
+        [m().best, result.best],
       ])
     );
-    const replay: [string, () => void] = ["再玩一次", () => this.restartLevel()];
+    const replay: [string, () => void] = [m().replay, () => this.restartLevel()];
     card.append(
       hasNext
         ? this.overlayActions(
-            ["下一关", () => this.loadLevel(nextLevel)],
+            [m().nextLevel, () => this.loadLevel(nextLevel)],
             replay,
             this.levelMenuAction(),
             ...this.certificateActions()
@@ -637,12 +667,12 @@ export class GameHost implements SfxControl {
   }
 
   private levelMenuAction(): [string, () => void] {
-    return ["选关", () => this.openLevelMenu()];
+    return [m().levelMenu, () => this.openLevelMenu()];
   }
 
   /** Extra result-card action once the player has graduated. */
   private certificateActions(): Array<[string, () => void]> {
-    return this.hasGraduated() ? [["毕业证书", () => this.openCertificate(false)]] : [];
+    return this.hasGraduated() ? [[m().certificate, () => this.openCertificate(false)]] : [];
   }
 
   private overlayCard(title: string, detail?: string): HTMLElement {
