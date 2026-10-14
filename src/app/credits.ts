@@ -1,7 +1,8 @@
 /**
  * Page footer (author line and a not-affiliated notice) and the credits dialog
- * listing third-party material. The full licence texts are served as
- * `licenses.txt` (see the `licences` plugin in vite.config.ts).
+ * listing third-party material. The full licence texts ship alongside the
+ * build as `licenses.txt` (see the `licences` plugin in vite.config.ts); the
+ * licences require them to accompany the code and fonts, not to be linked.
  */
 
 import { el, icon } from "./dom";
@@ -87,13 +88,7 @@ export function buildCreditsDialog(): HTMLDialogElement {
   }
 
   const notes = el("div", "credits__notes");
-  const licences = el("p", "credits__note");
-  licences.append(
-    "开源许可证全文：",
-    externalLink("credits__link", "licenses.txt", "licenses.txt")
-  );
   notes.append(
-    licences,
     el(
       "p",
       "credits__note",
