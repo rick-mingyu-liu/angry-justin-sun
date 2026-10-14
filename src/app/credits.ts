@@ -44,16 +44,10 @@ const CREDITS: readonly Credit[] = [
     licence: "SIL OFL 1.1",
   },
   {
-    what: "节目",
+    what: "节目与章节",
     who: "邵艾伦Alan · 哔哩哔哩",
     href: "https://www.bilibili.com/video/BV1fcHD6cEw3",
     licence: "官方播放器嵌入",
-  },
-  {
-    what: "章节与角色灵感",
-    who: "wolfyxbt/justin-nut",
-    href: "https://github.com/wolfyxbt/justin-nut",
-    licence: "参考",
   },
 ];
 
