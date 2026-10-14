@@ -25,6 +25,7 @@ import {
 import { button, el, icon } from "./dom";
 
 const EXPORT_FILE_NAME = "薄肌毕业证书.png";
+const DOWNLOAD_URL_LIFETIME_MS = 60_000;
 
 export interface GraduationDialogHost {
   getProgress(): Progress;
@@ -37,6 +38,7 @@ export interface GraduationDialogHost {
 export class GraduationDialog {
   readonly element = el("dialog", "help graduation");
 
+  private readonly heading = el("h2", "help__heading", "薄肌毕业证书");
   private readonly greeting = el("p", "graduation__greeting");
   private readonly nickname = el("input", "graduation__input");
   private readonly canvas = el("canvas", "graduation__canvas");
@@ -46,7 +48,6 @@ export class GraduationDialog {
   private readonly manualImage = el("img", "graduation__manual-image");
 
   private assets: CertificateAssets | null = null;
-  private manualUrl: string | null = null;
   /** Play the reveal on the first successful draw of this opening, not on an empty canvas. */
   private celebrateOnDraw = false;
 
@@ -81,7 +82,8 @@ export class GraduationDialog {
     this.clearManualImage();
     this.renderGreeting();
     this.element.showModal();
-    this.nickname.focus();
+    // Not the text field: on a phone that would raise the keyboard over the certificate.
+    this.heading.focus();
     void this.refreshPreview();
   }
 
@@ -94,8 +96,9 @@ export class GraduationDialog {
     dialog.setAttribute("aria-labelledby", "graduation-heading");
 
     const head = el("div", "help__head");
-    const heading = el("h2", "help__heading", "薄肌毕业证书");
+    const heading = this.heading;
     heading.id = "graduation-heading";
+    heading.tabIndex = -1;
     const closeButton = el("button", "btn btn--icon");
     closeButton.type = "button";
     closeButton.setAttribute("aria-label", "关闭");
@@ -116,7 +119,7 @@ export class GraduationDialog {
       this.nickname,
       el("span", "graduation__hint", `最多 ${NICKNAME_MAX_GRAPHEMES} 个字，留空就写「薄肌同学」`)
     );
-    // "change" fires on blur or Enter: the stored value is the normalised one.
+    // "change" fires on blur: the field then shows the stored, normalised value.
     // During IME composition (pinyin and friends) the field holds unfinished
     // input; it is saved when the composition ends.
     this.nickname.addEventListener("input", (event) => {
@@ -153,8 +156,14 @@ export class GraduationDialog {
     body.append(this.greeting, field, this.canvas, this.status, actions, this.manual);
 
     dialog.append(head, body);
+    // Close on a click that both starts and ends on the backdrop, so dragging a
+    // text selection out of the name field does not close the dialog.
+    let pressedOnBackdrop = false;
+    dialog.addEventListener("pointerdown", (event) => {
+      pressedOnBackdrop = event.target === dialog;
+    });
     dialog.addEventListener("click", (event) => {
-      if (event.target === dialog) this.close();
+      if (event.target === dialog && pressedOnBackdrop) this.close();
     });
     // Fires for the close button, Esc and the backdrop alike.
     dialog.addEventListener("close", () => {
@@ -195,8 +204,8 @@ export class GraduationDialog {
       if (!this.element.classList.contains("is-drawn")) {
         this.element.classList.add("is-drawn");
         this.element.classList.toggle("is-celebrating", this.celebrateOnDraw);
-        this.setStatus("");
       }
+      this.setStatus("");
       this.canvas.setAttribute(
         "aria-label",
         `${latest.title}：${latest.recipient}，${latest.body}，${latest.starsText}，${latest.dateLabel} ${latest.dateText}`
@@ -226,11 +235,13 @@ export class GraduationDialog {
       link.click();
       link.remove();
 
+      // Give the browser time to start the download before the URL goes away.
+      window.setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS);
+
       // Some mobile and in-app browsers ignore `download`; the same image is
-      // shown below so it can always be saved by hand.
-      this.clearManualImage();
-      this.manualUrl = url;
-      this.manualImage.src = url;
+      // shown below so it can always be saved by hand. A data URL, because
+      // in-app webviews are unreliable at long-press saving blob URLs.
+      this.manualImage.src = this.canvas.toDataURL("image/png");
       this.manual.hidden = false;
       this.setStatus("图片已生成。");
     } catch (error) {
@@ -244,8 +255,6 @@ export class GraduationDialog {
   private clearManualImage(): void {
     this.manual.hidden = true;
     this.manualImage.removeAttribute("src");
-    if (this.manualUrl) URL.revokeObjectURL(this.manualUrl);
-    this.manualUrl = null;
   }
 
   private setStatus(text: string): void {

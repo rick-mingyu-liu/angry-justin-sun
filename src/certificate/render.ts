@@ -19,7 +19,9 @@ import {
 import {
   CERTIFICATE_ASSET_PATHS,
   CERTIFICATE_FONT_FAMILY,
+  CERTIFICATE_FONT_HANZI,
   CERTIFICATE_FONT_STACK,
+  CERTIFICATE_SYSTEM_FONT_STACK,
   CERTIFICATE_HEIGHT,
   CERTIFICATE_WIDTH,
   type CertificateModel,
@@ -163,8 +165,18 @@ function graphemes(text: string): string[] {
   });
 }
 
+/** Swapped to the system stack while drawing a name the bundled subset cannot fully cover. */
+let activeFontStack: string = CERTIFICATE_FONT_STACK;
+
 function setFont(ctx: Ctx, weight: FontWeight, size: number): void {
-  ctx.font = `${weight} ${size}px ${CERTIFICATE_FONT_STACK}`;
+  ctx.font = `${weight} ${size}px ${activeFontStack}`;
+}
+
+const SUBSET_HANZI = new Set(CERTIFICATE_FONT_HANZI);
+
+/** True when every character is in the bundled subset (its hanzi, or plain ASCII). */
+function subsetCovers(text: string): boolean {
+  return Array.from(text).every((char) => SUBSET_HANZI.has(char) || char.charCodeAt(0) < 0x7f);
 }
 
 /** Width of `text` in the current font with `spacing` px between graphemes. */
@@ -312,6 +324,17 @@ function layoutRecipient(ctx: Ctx, text: string): RecipientLayout {
 }
 
 function drawRecipient(ctx: Ctx, text: string): void {
+  // A name is arbitrary text: unless the subset has all of it, use one system
+  // face for the whole name instead of mixing two per character.
+  activeFontStack = subsetCovers(text) ? CERTIFICATE_FONT_STACK : CERTIFICATE_SYSTEM_FONT_STACK;
+  try {
+    drawRecipientLines(ctx, text);
+  } finally {
+    activeFontStack = CERTIFICATE_FONT_STACK;
+  }
+}
+
+function drawRecipientLines(ctx: Ctx, text: string): void {
   const { lines, size } = layoutRecipient(ctx, text);
   const lineHeight = size * RECIPIENT.lineHeight;
   const firstY = RECIPIENT.y - ((lines.length - 1) * lineHeight) / 2;

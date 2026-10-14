@@ -40,3 +40,14 @@ export const CERTIFICATE_FONT_FAMILY = "Boji Certificate Serif";
 
 /** Canvas font stack: bundled subset first, then system Chinese serifs for any other glyph. */
 export const CERTIFICATE_FONT_STACK = `"${CERTIFICATE_FONT_FAMILY}", "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC", serif`;
+
+/** System serifs only, for text the bundled subset cannot draw completely. */
+export const CERTIFICATE_SYSTEM_FONT_STACK = `"Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC", serif`;
+
+/**
+ * The Chinese characters in the bundled subset (scripts/subset-certificate-font.py);
+ * it also has ASCII letters, digits and basic punctuation. A name using any other
+ * character is drawn entirely in the system serif, so one name never mixes typefaces.
+ */
+export const CERTIFICATE_FONT_HANZI =
+  "。业书了予今从以优你修克全关准刘发另可同哥喜天孙学完射已平弓弹总恭成数日明星期本毕水炼独瑞生秀立肌腹薄行证请起通部院，";

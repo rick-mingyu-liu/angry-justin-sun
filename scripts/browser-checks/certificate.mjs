@@ -475,7 +475,10 @@ const overlay = (page) => page.locator(".stage__overlay").innerText();
   await page.reload();
   await ready(page);
   await sleep(2500);
-  check("legacy save: game resumes normally after the celebration was dismissed", true);
+  check(
+    "legacy save: game runs normally after the celebration was dismissed",
+    (await pauseLabel(page)) === "running"
+  );
   check("legacy save: celebration shown only once", (await dialogOpen(page)) === 0);
   check(
     "legacy save: date frozen across reloads",

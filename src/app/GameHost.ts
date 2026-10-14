@@ -6,7 +6,12 @@
 import { CHARACTERS, type CharacterDefinition, type CharacterId } from "../game/characters";
 import { createGameAdapter } from "../game/gameAdapter";
 import type { GameAdapter } from "../game/gameAdapterTypes";
-import { getLevelEntry, LEVEL_CATALOG, TOTAL_LEVELS } from "../game/levelCatalog";
+import {
+  getLevelEntry,
+  LEVEL_CATALOG,
+  MAX_STARS_PER_LEVEL,
+  TOTAL_LEVELS,
+} from "../game/levelCatalog";
 import {
   acknowledgeGraduationCelebration,
   canEnterLevel,
@@ -47,7 +52,7 @@ interface CharacterCard {
   badge: HTMLSpanElement;
 }
 
-const MAX_STARS = 3;
+const MAX_STARS = MAX_STARS_PER_LEVEL;
 
 function formatScore(score: number): string {
   return score.toLocaleString("zh-CN");
@@ -254,7 +259,7 @@ export class GameHost implements SfxControl {
 
     const actions = el("div", "toolbar__actions");
     this.pauseButton.element.addEventListener("click", () => this.togglePause());
-    this.restartButton.element.addEventListener("click", () => this.adapter?.restartLevel());
+    this.restartButton.element.addEventListener("click", () => this.restartLevel());
     this.levelMenuButton.element.addEventListener("click", () => this.openLevelMenu());
     actions.append(
       this.levelMenuButton.element,
@@ -361,7 +366,11 @@ export class GameHost implements SfxControl {
     this.menuPausedGame = false;
     this.levelMenu.close();
     this.openCertificate(false);
-    this.certificatePausedGame = this.certificatePausedGame || inheritedPause;
+    if (this.graduation.isOpen) {
+      this.certificatePausedGame = this.certificatePausedGame || inheritedPause;
+    } else if (inheritedPause) {
+      this.adapter?.resume();
+    }
   }
 
   private handleGraduationClosed(): void {
@@ -370,12 +379,24 @@ export class GameHost implements SfxControl {
     this.certificatePausedGame = false;
   }
 
+  // Starting a level is the player moving on: a celebration that has not opened
+  // yet waits for the next victory card and must not land on the new level.
+  private restartLevel(): void {
+    this.cancelCelebration();
+    this.adapter?.restartLevel();
+  }
+
+  private loadLevel(levelId: number): void {
+    this.cancelCelebration();
+    this.adapter?.loadLevel(levelId);
+  }
+
   private pickLevel(levelId: number): void {
     if (!canEnterLevel(this.store.get(), levelId)) return;
     // Loading a level starts it unpaused, so the close handler must not resume.
     this.menuPausedGame = false;
     this.levelMenu.close();
-    this.adapter?.loadLevel(levelId);
+    this.loadLevel(levelId);
   }
 
   private renderLevelMenu(): void {
@@ -578,9 +599,7 @@ export class GameHost implements SfxControl {
     if (result.kind === "failed") {
       const card = this.overlayCard("差一点！");
       card.append(this.overlayScores([["得分", result.score]]));
-      card.append(
-        this.overlayActions(["重开", () => this.adapter?.restartLevel()], this.levelMenuAction())
-      );
+      card.append(this.overlayActions(["重开", () => this.restartLevel()], this.levelMenuAction()));
       return card;
     }
 
@@ -603,11 +622,11 @@ export class GameHost implements SfxControl {
         ["最高", result.best],
       ])
     );
-    const replay: [string, () => void] = ["再玩一次", () => this.adapter?.restartLevel()];
+    const replay: [string, () => void] = ["再玩一次", () => this.restartLevel()];
     card.append(
       hasNext
         ? this.overlayActions(
-            ["下一关", () => this.adapter?.loadLevel(nextLevel)],
+            ["下一关", () => this.loadLevel(nextLevel)],
             replay,
             this.levelMenuAction(),
             ...this.certificateActions()
