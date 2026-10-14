@@ -140,12 +140,13 @@ What would settle it: download Kenney Fonts from kenney.nl, read its licence fil
 
 ## Our additions: character images
 
-| File                                                           | md5                                | Dimensions       | Role                        |
-| -------------------------------------------------------------- | ---------------------------------- | ---------------- | --------------------------- |
-| `assets/characters-source/justin-nut-transparent.png`          | `186f1c973f9b687d6820ca684fe78447` | 1377 x 1142 RGBA | Source, kept byte-identical |
-| `assets/characters-source/justin-nut-upgraded-transparent.png` | `6c85814403beb0dfab955f455b52f186` | 1254 x 1254 RGBA | Source, kept byte-identical |
-| `game-assets/characters/nut-standard.png`                      | `c36e61bcb499bb7d2ed6918c3b1991dc` | 256 x 256 RGBA   | Derived, shipped            |
-| `game-assets/characters/nut-muscle.png`                        | `4fe74e1c52baeccf1c099f3af38d99e3` | 256 x 256 RGBA   | Derived, shipped            |
+| File                                                           | md5                                | Dimensions         | Role                                             |
+| -------------------------------------------------------------- | ---------------------------------- | ------------------ | ------------------------------------------------ |
+| `assets/characters-source/justin-nut-transparent.png`          | `186f1c973f9b687d6820ca684fe78447` | 1377 x 1142 RGBA   | Source, kept byte-identical                      |
+| `assets/characters-source/justin-nut-upgraded-transparent.png` | `6c85814403beb0dfab955f455b52f186` | 1254 x 1254 RGBA   | Source, kept byte-identical                      |
+| `game-assets/characters/nut-standard.png`                      | `c36e61bcb499bb7d2ed6918c3b1991dc` | 256 x 256 RGBA     | Derived, shipped                                 |
+| `game-assets/characters/nut-muscle.png`                        | `4fe74e1c52baeccf1c099f3af38d99e3` | 256 x 256 RGBA     | Derived, shipped                                 |
+| `game-assets/favicon.ico`, `game-assets/icons/*.png`           | not recorded                       | 16/32/48, 192, 180 | Derived site icons (standard character), shipped |
 
 The source md5 values were recomputed in this audit and match the values supplied by the project. The derived md5 values are as found on 2026-10-13 and will change if the script is re-run with different settings.
 
