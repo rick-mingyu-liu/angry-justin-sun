@@ -81,7 +81,7 @@ Browser check: `npm run build && npm run preview`, then in another terminal `npm
 ## Layout of the code
 
 ```text
-src/app/        AppShell (page, header), GameHost (toolbar, overlays, characters, progress wiring)
+src/app/        AppShell (page, header), credits.ts (footer, 致谢与许可 dialog), GameHost (toolbar, overlays, characters, progress wiring)
 src/podcast/    PodcastPanel, bilibili.ts (URL building), podcastData.ts (configuration)
 src/game/       gameAdapter.ts (mount/pause/resume/restartLevel/loadLevel/selectCharacter/setMuted/destroy + events),
                 createGame.ts, characters.ts, levels.ts, levelCatalog.ts
@@ -103,3 +103,5 @@ To change a character image, replace the PNG in `assets/characters-source/` and 
 ## Third-party material and open rights questions
 
 See `third_party/README.md`. In short: the game code is MIT (upstream), Phaser and Matter.js are MIT. Several items are **not cleared** and need a decision before any public release: the character images (a real person's likeness), the upstream audio file (no documented origin), and the bundled fonts (conflicting licence statements). The upstream `LICENSE` is kept at the repository root.
+
+The page footer credits the author (刘瑞克) and states that this is an unofficial fan work. Its 「致谢与许可」 dialog lists third-party material and links to `licenses.txt`, which the build generates from `LICENSE` and `third_party/licenses/` (see the `licences` plugin in `vite.config.ts`). To change the author line or the credits list, edit `src/app/credits.ts`.

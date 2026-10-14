@@ -1,10 +1,11 @@
 /**
  * AppShell: builds the page once. Header, then the podcast panel next to the
- * game host. Both children are created exactly once and never recreated.
+ * game host, then the footer. Both children are created exactly once and never recreated.
  */
 
 import { getCharacter } from "../game/characters";
 import { PodcastPanel } from "../podcast/PodcastPanel";
+import { buildCreditsDialog, buildFooter } from "./credits";
 import { button, el, icon } from "./dom";
 import { GameHost, type SfxControl } from "./GameHost";
 
@@ -94,6 +95,7 @@ export function mountAppShell(root: HTMLElement): AppShell {
   const podcast = new PodcastPanel();
   const game = new GameHost();
   const help = buildHelpDialog();
+  const credits = buildCreditsDialog();
 
   const main = el("main", "layout");
   const podcastColumn = el("div", "layout__podcast");
@@ -102,7 +104,7 @@ export function mountAppShell(root: HTMLElement): AppShell {
   gameColumn.append(game.element);
   main.append(podcastColumn, gameColumn);
 
-  root.replaceChildren(buildHeader(game, help), main, help);
+  root.replaceChildren(buildHeader(game, help), main, buildFooter(credits), help, credits);
   // Phaser measures its parent, so the game starts only once it is in the document.
   game.start();
 
