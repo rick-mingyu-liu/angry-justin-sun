@@ -1,4 +1,6 @@
-# 播客弹弓 (Podcast Slingshot)
+# 愤怒的孙哥 (Angry Justin Sun)
+
+Formerly 播客弹弓 (Podcast Slingshot); that name survives in code comments marking upstream changes and in the storage key, which is kept so saved progress is not lost.
 
 Watch or listen to a Bilibili podcast on the left while playing a slingshot physics game on the right. Browser-only MVP: no accounts, no backend.
 

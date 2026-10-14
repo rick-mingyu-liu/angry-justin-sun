@@ -72,7 +72,7 @@ function buildHeader(sfx: SfxControl, help: HTMLDialogElement): HTMLElement {
   logo.alt = "";
   logo.width = 256;
   logo.height = 256;
-  brand.append(logo, el("span", undefined, "播客弹弓"));
+  brand.append(logo, el("span", undefined, "愤怒的孙哥"));
 
   const actions = el("div", "header__actions");
   const helpButton = button("header__btn", "帮助", "help");

@@ -1,6 +1,6 @@
 # Third-party material: overview
 
-Product: 播客弹弓 (Podcast Slingshot). Audit date: 2026-10-13. Details and evidence: `UPSTREAM.md`, `ASSETS.md`, `licenses/`.
+Product: 愤怒的孙哥 (formerly 播客弹弓 / Podcast Slingshot). Audit date: 2026-10-13. Details and evidence: `UPSTREAM.md`, `ASSETS.md`, `licenses/`.
 
 This folder records what was checked and what was not. It is not legal advice. A repository's MIT label does not by itself establish rights to the media inside it.
 
