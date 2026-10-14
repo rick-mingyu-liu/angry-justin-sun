@@ -16,7 +16,12 @@ import {
   type CertificateAssets,
 } from "../certificate/render";
 import { CERTIFICATE_HEIGHT, CERTIFICATE_WIDTH } from "../certificate/types";
-import { displayNickname, NICKNAME_MAX_GRAPHEMES, type Progress } from "../storage/progress";
+import {
+  displayNickname,
+  NICKNAME_MAX_CODE_UNITS,
+  NICKNAME_MAX_GRAPHEMES,
+  type Progress,
+} from "../storage/progress";
 import { button, el, icon } from "./dom";
 
 const EXPORT_FILE_NAME = "薄肌毕业证书.png";
@@ -42,6 +47,8 @@ export class GraduationDialog {
 
   private assets: CertificateAssets | null = null;
   private manualUrl: string | null = null;
+  /** Play the reveal on the first successful draw of this opening, not on an empty canvas. */
+  private celebrateOnDraw = false;
 
   constructor(private readonly host: GraduationDialogHost) {
     this.build();
@@ -51,13 +58,26 @@ export class GraduationDialog {
     return this.element.open;
   }
 
+  /** Starts fetching the images and fonts so the first open can draw at once. */
+  preload(): void {
+    void loadCertificateAssets().then(
+      (assets) => {
+        this.assets = assets;
+      },
+      () => {
+        // Reported when the dialog actually needs them.
+      }
+    );
+  }
+
   /** `celebrate` adds the one-time entrance animation (skipped under reduced motion by CSS). */
   open(celebrate: boolean): void {
     if (this.element.open) return;
     const record = this.host.getProgress().graduation;
     this.nickname.value = record?.nickname ?? "";
-    this.element.classList.toggle("is-celebrating", celebrate);
-    this.setStatus("");
+    this.celebrateOnDraw = celebrate;
+    this.element.classList.remove("is-celebrating", "is-drawn");
+    this.setStatus("证书生成中…");
     this.clearManualImage();
     this.renderGreeting();
     this.element.showModal();
@@ -89,6 +109,7 @@ export class GraduationDialog {
     this.nickname.setAttribute("autocomplete", "nickname");
     this.nickname.placeholder = displayNickname("");
     this.nickname.enterKeyHint = "done";
+    this.nickname.maxLength = NICKNAME_MAX_CODE_UNITS;
     field.htmlFor = this.nickname.id;
     field.append(
       el("span", "graduation__label", "证书上的名字"),
@@ -96,7 +117,13 @@ export class GraduationDialog {
       el("span", "graduation__hint", `最多 ${NICKNAME_MAX_GRAPHEMES} 个字，留空就写「薄肌同学」`)
     );
     // "change" fires on blur or Enter: the stored value is the normalised one.
-    this.nickname.addEventListener("input", () => this.applyNickname(false));
+    // During IME composition (pinyin and friends) the field holds unfinished
+    // input; it is saved when the composition ends.
+    this.nickname.addEventListener("input", (event) => {
+      if ((event as InputEvent).isComposing) return;
+      this.applyNickname(false);
+    });
+    this.nickname.addEventListener("compositionend", () => this.applyNickname(false));
     this.nickname.addEventListener("change", () => this.applyNickname(true));
     this.nickname.addEventListener("keydown", (event) => {
       if (event.key === "Enter") event.preventDefault();
@@ -133,7 +160,7 @@ export class GraduationDialog {
     dialog.addEventListener("close", () => {
       this.applyNickname(true);
       this.clearManualImage();
-      this.element.classList.remove("is-celebrating");
+      this.element.classList.remove("is-celebrating", "is-drawn");
       this.host.onClose();
     });
   }
@@ -162,7 +189,14 @@ export class GraduationDialog {
       this.assets ??= await loadCertificateAssets();
       // The nickname may have changed while assets were loading: draw the latest.
       const latest = buildCertificateModel(this.host.getProgress()) ?? model;
+      // Closed while the assets were loading: nothing to show.
+      if (!this.element.open) return false;
       drawCertificate(this.canvas, latest, this.assets);
+      if (!this.element.classList.contains("is-drawn")) {
+        this.element.classList.add("is-drawn");
+        this.element.classList.toggle("is-celebrating", this.celebrateOnDraw);
+        this.setStatus("");
+      }
       this.canvas.setAttribute(
         "aria-label",
         `${latest.title}：${latest.recipient}，${latest.body}，${latest.starsText}，${latest.dateLabel} ${latest.dateText}`
@@ -181,6 +215,7 @@ export class GraduationDialog {
     try {
       if (!(await this.refreshPreview())) return;
       const blob = await certificateToBlob(this.canvas);
+      if (!this.element.open) return;
       const url = URL.createObjectURL(blob);
 
       const link = el("a");

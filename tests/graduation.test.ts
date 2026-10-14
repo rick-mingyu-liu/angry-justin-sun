@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { LEVEL_CATALOG, MAX_STARS_PER_LEVEL, TOTAL_LEVELS } from "../src/game/levelCatalog";
 import {
   DEFAULT_GRADUATE_NAME,
+  NICKNAME_MAX_CODE_UNITS,
   NICKNAME_MAX_GRAPHEMES,
   PROGRESS_STORAGE_KEY,
   acknowledgeGraduationCelebration,
@@ -304,6 +305,24 @@ describe("nickname", () => {
     expect(setGraduationNickname(named, 42).graduation?.nickname).toBe("");
     const notYet = win(ALL_BUT_LAST);
     expect(setGraduationNickname(notYet, "阿伟")).toBe(notYet);
+  });
+});
+
+describe("nickname size bound", () => {
+  it("caps the stored length even when one grapheme is enormous", () => {
+    const zalgo = "a" + "\u0301".repeat(5000);
+    const name = normalizeNickname(zalgo.repeat(3));
+    expect(name.length).toBeLessThanOrEqual(NICKNAME_MAX_CODE_UNITS);
+  });
+
+  it("still fits sixteen long emoji sequences", () => {
+    const family = "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}";
+    expect(family.length * NICKNAME_MAX_GRAPHEMES).toBeLessThanOrEqual(NICKNAME_MAX_CODE_UNITS);
+  });
+
+  it("handles a very long paste without keeping it", () => {
+    const name = normalizeNickname("薄".repeat(100000));
+    expect(Array.from(name)).toHaveLength(NICKNAME_MAX_GRAPHEMES);
   });
 });
 

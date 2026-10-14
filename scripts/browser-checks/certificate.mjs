@@ -361,6 +361,93 @@ const overlay = (page) => page.locator(".stage__overlay").innerText();
   await context.close();
 }
 
+// ------------------------- 2b. moving on quickly must not get the celebration mid-play
+{
+  const { context, page } = await openPage(fixture(range(2, 30)));
+  await page.getByRole("button", { name: /选关/ }).first().click();
+  await sleep(300);
+  await page.locator(".level-card").first().click();
+  await ready(page);
+  let won = false;
+  for (let attempt = 0; attempt < 4 && !won; attempt += 1) {
+    await shoot(page, -110, 45);
+    await page.waitForFunction(
+      () => /过关|差一点/.test(document.querySelector(".stage__overlay").innerText),
+      null,
+      { timeout: 90000 }
+    );
+    won = (await overlay(page)).includes("过关");
+    // Either way, replay at once: on a win this is inside the celebration delay.
+    await page
+      .locator(".stage__overlay")
+      .getByRole("button", { name: won ? "再玩一次" : "重开" })
+      .click();
+    if (!won) await ready(page);
+  }
+  check("2b: last level won, then replayed immediately", won);
+  await ready(page);
+  await sleep(2500);
+  check(
+    "2b: no celebration interrupts the level the player moved on to",
+    (await dialogOpen(page)) === 0 && (await pauseLabel(page)) === "running"
+  );
+  check(
+    "2b: the celebration is still owed",
+    (await stored(page)).graduation?.celebrationSeen === false
+  );
+  // Opening it by hand before the celebration ran still plays it, then acknowledges.
+  await page.getByRole("button", { name: /选关/ }).first().click();
+  await sleep(300);
+  await page.locator(".graduation-entry").click();
+  await page.waitForSelector("dialog.graduation.is-drawn", { timeout: 20000 });
+  check(
+    "2b: first manual viewing is the celebration",
+    (await page.locator("dialog.graduation.is-celebrating").count()) === 1
+  );
+  await page.keyboard.press("Escape");
+  await sleep(400);
+  check(
+    "2b: acknowledged after it was actually shown",
+    (await stored(page)).graduation.celebrationSeen === true
+  );
+  await context.close();
+}
+
+// ----------------------- 2c. another dialog in the way defers the celebration, not drops it
+{
+  const { context, page } = await openPage(fixture(range(2, 30)));
+  await page.getByRole("button", { name: /选关/ }).first().click();
+  await sleep(300);
+  await page.locator(".level-card").first().click();
+  await ready(page);
+  let won = false;
+  for (let attempt = 0; attempt < 4 && !won; attempt += 1) {
+    await shoot(page, -110, 45);
+    await page.waitForFunction(
+      () => /过关|差一点/.test(document.querySelector(".stage__overlay").innerText),
+      null,
+      { timeout: 90000 }
+    );
+    won = (await overlay(page)).includes("过关");
+    if (!won) {
+      await page.locator(".stage__overlay").getByRole("button", { name: "重开" }).click();
+      await ready(page);
+    }
+  }
+  // Open the help dialog inside the celebration delay and keep it open past it.
+  await page.locator(".header").getByRole("button", { name: /帮助/ }).click();
+  await sleep(2600);
+  check(
+    "2c: celebration does not stack on the help dialog",
+    (await dialogOpen(page)) === 0 && (await page.locator("dialog[open]").count()) === 1
+  );
+  await page.keyboard.press("Escape");
+  await page.waitForSelector("dialog.graduation[open]", { timeout: 6000 }).catch(() => {});
+  check("2c: celebration appears once the help dialog is closed", (await dialogOpen(page)) === 1);
+  await page.keyboard.press("Escape");
+  await context.close();
+}
+
 // ------------------------------------------------ 3. legacy save that already qualifies
 {
   // The celebration pauses the game right after load, so do not wait for a ready walnut.

@@ -27,6 +27,8 @@ import { GraduationDialog } from "./GraduationDialog";
 
 /** Pause between the victory card appearing and the one-time graduation celebration. */
 const GRADUATION_CELEBRATION_DELAY_MS = 1400;
+/** How often to look again while another dialog is in the way. */
+const GRADUATION_CELEBRATION_RETRY_MS = 500;
 
 /** What the header sound button needs from the game side. */
 export interface SfxControl {
@@ -84,6 +86,7 @@ export class GameHost implements SfxControl {
   /** True when opening the certificate is what paused the game. */
   private certificatePausedGame = false;
   private celebrationTimer: number | null = null;
+  private hasStartedLevel = false;
   private readonly pauseButton = button("btn", "暂停", "pause");
   private readonly restartButton = button("btn", "重开", "restart");
   private readonly mount = el("div", "stage__mount");
@@ -154,9 +157,15 @@ export class GameHost implements SfxControl {
         this.paused = adapter.isPaused();
         this.projectileReady = adapter.isProjectileReady();
         this.store.update((progress) => enterLevel(progress, levelId));
+        // Starting a level means the player moved on: a pending celebration
+        // waits for the next victory card and never interrupts live play.
+        // The exception is the first level after loading the page, which is
+        // where a save that already qualifies gets its celebration.
         this.cancelCelebration();
+        const firstLevelAfterLoad = !this.hasStartedLevel;
+        this.hasStartedLevel = true;
         this.renderAll();
-        this.scheduleCelebrationIfDue();
+        if (firstLevelAfterLoad) this.scheduleCelebrationIfDue();
       }),
       adapter.on("shotCountChanged", ({ remaining }) => {
         this.shotsRemaining = remaining;
@@ -304,19 +313,24 @@ export class GameHost implements SfxControl {
     return progress.graduation !== undefined && isGraduationEligible(progress);
   }
 
-  /** Shows the celebration once, shortly after the game (or the victory card) is on screen. */
-  private scheduleCelebrationIfDue(): void {
+  /** Shows the celebration once, shortly after the victory card (or the first level) is on screen. */
+  private scheduleCelebrationIfDue(delay = GRADUATION_CELEBRATION_DELAY_MS): void {
     const progress = this.store.get();
     if (!this.started || !this.hasGraduated(progress) || progress.graduation?.celebrationSeen) {
       return;
     }
     if (this.celebrationTimer !== null || this.graduation.isOpen) return;
+    this.graduation.preload();
     this.celebrationTimer = window.setTimeout(() => {
       this.celebrationTimer = null;
-      // Never on top of another modal; the permanent entry stays available.
-      if (this.levelMenu.open || document.querySelector("dialog[open]")) return;
+      // Never on top of another modal (level page, help): try again shortly.
+      // Starting a level cancels the wait.
+      if (document.querySelector("dialog[open]")) {
+        this.scheduleCelebrationIfDue(GRADUATION_CELEBRATION_RETRY_MS);
+        return;
+      }
       this.openCertificate(true);
-    }, GRADUATION_CELEBRATION_DELAY_MS);
+    }, delay);
   }
 
   private cancelCelebration(): void {
@@ -335,7 +349,10 @@ export class GameHost implements SfxControl {
       adapter.pause();
       this.certificatePausedGame = adapter.isPaused();
     }
-    this.graduation.open(celebrate);
+    // Opening it by hand before the celebration ran still gets the celebration,
+    // so closing never acknowledges one that was not shown.
+    const firstViewing = this.store.get().graduation?.celebrationSeen === false;
+    this.graduation.open(celebrate || firstViewing);
   }
 
   private openCertificateFromMenu(): void {

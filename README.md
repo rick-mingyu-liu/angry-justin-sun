@@ -66,6 +66,18 @@ How the player behaves, by design:
 - The game pauses when the tab goes to the background and stays paused until `继续` is pressed.
 - Progress is stored in `localStorage` under `podcast-slingshot:progress:v1`: highest unlocked level, best score and stars per level, unlocked and selected character, sound preference. Invalid data falls back to defaults; if storage is unavailable the game runs from memory and says so. A refresh starts the latest unlocked level from its initial state.
 
+## Graduation certificate (薄肌毕业证书)
+
+Winning every level in the catalog earns a certificate from the fictional 薄肌学院. It is a game reward, not a qualification, and nothing verifies it on a server.
+
+- **When:** only when all 30 levels have a won result, in any order. Unlocking or entering level 30 is not enough, and all stars are not required. Every level at three stars adds an `优秀毕业生` badge.
+- **Where:** a one-time celebration follows the victory card of the last outstanding level (or the first page load, for a save that already qualifies). After that a `毕业证书` button stays in the level page and on victory cards.
+- **What:** a dialog with a name field (up to 16 characters, empty means 薄肌同学), a preview, and `保存图片`, which downloads an 1800×1200 PNG. The preview is the export canvas itself, so they cannot differ. On browsers that ignore downloads the image is shown for saving by hand.
+- **Stored** with the rest of the progress: when it was first earned, that day's date (frozen), the name, and whether the celebration was seen. Stars on the certificate follow the current best results.
+- **Code:** rules in `src/storage/progress.ts`, text in `src/certificate/model.ts`, drawing in `src/certificate/render.ts`, dialog in `src/app/GraduationDialog.ts`. The lettering uses a small subset of Noto Serif SC (`third_party/FONTS.md`); other characters in a name use the system serif.
+
+Browser check: `npm run build && npm run preview`, then in another terminal `npm run test:browser:certificate`. It drives the real page in headless Chrome with seeded saves and writes the exported PNGs to `scripts/browser-checks/output/`. It needs Google Chrome installed.
+
 ## Layout of the code
 
 ```text
@@ -73,7 +85,8 @@ src/app/        AppShell (page, header), GameHost (toolbar, overlays, characters
 src/podcast/    PodcastPanel, bilibili.ts (URL building), podcastData.ts (configuration)
 src/game/       gameAdapter.ts (mount/pause/resume/restartLevel/loadLevel/selectCharacter/setMuted/destroy + events),
                 createGame.ts, characters.ts, levels.ts, levelCatalog.ts
-src/storage/    progress.ts (validation, unlock rules, store with in-memory fallback)
+src/storage/    progress.ts (validation, unlock and graduation rules, store with in-memory fallback)
+src/certificate/ graduation certificate: model (text), render (canvas), ornaments
 src/styles/     app.css
 src/…           upstream game code (scenes, objects, systems, config)
 game-assets/    served as-is: upstream atlases, audio, fonts, shaders; characters/ sprites

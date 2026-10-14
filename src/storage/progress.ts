@@ -15,6 +15,8 @@ export const PROGRESS_STORAGE_KEY = "podcast-slingshot:progress:v1";
 
 export const DEFAULT_GRADUATE_NAME = "薄肌同学";
 export const NICKNAME_MAX_GRAPHEMES = 16;
+/** Upper bound on the stored nickname in UTF-16 code units (16 long emoji sequences still fit). */
+export const NICKNAME_MAX_CODE_UNITS = 192;
 
 export interface LevelBest {
   bestScore: number;
@@ -92,8 +94,19 @@ function splitGraphemes(text: string): string[] {
  */
 export function normalizeNickname(raw: unknown): string {
   if (typeof raw !== "string") return "";
-  const collapsed = raw.trim().replace(/\s+/g, " ");
-  return splitGraphemes(collapsed).slice(0, NICKNAME_MAX_GRAPHEMES).join("").trimEnd();
+  // Bound the work first: a pasted wall of text is cut before it is segmented.
+  const collapsed = raw
+    .slice(0, NICKNAME_MAX_CODE_UNITS * 4)
+    .trim()
+    .replace(/\s+/g, " ");
+  let name = "";
+  for (const grapheme of splitGraphemes(collapsed).slice(0, NICKNAME_MAX_GRAPHEMES)) {
+    // One "grapheme" can be arbitrarily long (stacked combining marks), so the
+    // stored length is capped too.
+    if (name.length + grapheme.length > NICKNAME_MAX_CODE_UNITS) break;
+    name += grapheme;
+  }
+  return name.trimEnd();
 }
 
 /** The name to print. A custom name replaces the default entirely. */
